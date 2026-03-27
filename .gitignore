@@ -1,0 +1,13 @@
+# Compiled class file
+*.class
+
+# Maven
+target/
+
+# IDEs (VS Code, IntelliJ, Eclipse)
+.vscode/
+.idea/
+*.iml
+.project
+.classpath
+.settings/
