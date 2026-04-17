@@ -16,6 +16,7 @@ public class AuctionServiceImpl implements IAuctionService {
     // Lấy instance duy nhất của Manager để lấy dữ liệu
     private AuctionManager auctionManager = AuctionManager.getInstance();
 
+
     @Override
     public void placeManualBid(int auctionId, int bidderId, double bidAmount) throws AuctionException {
         Auction auction = auctionManager.getAuction(auctionId);
