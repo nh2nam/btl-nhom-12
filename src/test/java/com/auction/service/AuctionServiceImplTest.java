@@ -3,6 +3,11 @@ package com.auction.service;
 import com.auction.model.Auction;
 import com.auction.model.Electronics;
 import com.auction.util.AuctionManager;
+
+// Import thêm các Exception mới tạo
+import com.auction.exception.AuctionException;
+import com.auction.exception.BidTooLowException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
@@ -10,6 +15,7 @@ import java.time.LocalDateTime;
 // Import các hàm kiểm tra của JUnit
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class AuctionServiceImplTest {
 
@@ -33,27 +39,29 @@ public class AuctionServiceImplTest {
     }
 
     // ==========================================
-    // BÀI TEST SỐ 1: CHẶN GIÁ THẤP (Ở ĐÂY NÀY!)
+    // BÀI TEST SỐ 1: CHẶN GIÁ THẤP
     // ==========================================
     @Test
     public void testPlaceBid_TooLow_ShouldFail() {
-        // Hành động: Bidder số 99 đặt giá 400$ (trong khi giá khởi điểm đang là 500$)
-        BidResult result = auctionService.placeManualBid(testAuction.getId(), 99, 400.0);
-
-        // Kiểm tra kết quả: Kỳ vọng kết quả trả về CHÍNH XÁC là BID_TOO_LOW
-        assertEquals(BidResult.BID_TOO_LOW, result, "Hệ thống phải báo lỗi BID_TOO_LOW khi đặt giá thấp!");
+        // Dùng assertThrows để bắt lỗi: Nếu code bên trong { ... } ném ra lỗi BidTooLowException thì bài test Pass
+        assertThrows(BidTooLowException.class, () -> {
+            // Hành động: Bidder số 99 đặt giá 400$ (trong khi giá khởi điểm đang là 500$)
+            auctionService.placeManualBid(testAuction.getId(), 99, 400.0);
+        }, "Hệ thống phải báo lỗi BidTooLowException khi đặt giá thấp!");
     }
 
     // ==========================================
     // BÀI TEST SỐ 2: ĐẶT GIÁ CHUẨN XÁC
     // ==========================================
     @Test
-    public void testPlaceBid_ValidAmount_ShouldSucceed() {
-        // Hành động: Bidder số 88 đặt giá 600$ (hợp lệ vì giá khởi điểm là 500$)
-        BidResult result = auctionService.placeManualBid(testAuction.getId(), 88, 600.0);
+    public void testPlaceBid_ValidAmount_ShouldSucceed() throws AuctionException {
+        // Thêm "throws AuctionException" ở dòng trên để báo cho JUnit biết hàm này có thể văng lỗi
 
-        // Kiểm tra 3 thứ: Trạng thái, Giá mới, và ID người thắng
-        assertEquals(BidResult.SUCCESS, result, "Hệ thống phải trả về SUCCESS");
+        // Hành động: Bidder số 88 đặt giá 600$ (hợp lệ vì giá khởi điểm là 500$)
+        // Không gán vào BidResult nữa, nếu code chạy trơn tru không ném ra Exception nào tức là đã đặt giá thành công
+        auctionService.placeManualBid(testAuction.getId(), 88, 600.0);
+
+        // Kiểm tra Giá mới và ID người thắng
         assertEquals(600.0, testAuction.getCurrentHighestBid(), "Giá hiện tại phải được cập nhật lên 600");
         assertEquals(88, testAuction.getCurrentWinnerId(), "Người thắng hiện tại phải là Bidder 88");
     }
@@ -62,7 +70,7 @@ public class AuctionServiceImplTest {
     // BÀI TEST SỐ 3: HACK THỜI GIAN (ANTI-SNIPING)
     // ==========================================
     @Test
-    public void testPlaceBid_AntiSniping_ShouldExtendEndTime() {
+    public void testPlaceBid_AntiSniping_ShouldExtendEndTime() throws AuctionException {
         // 1. Dùng code "hack" thời gian: Ép giờ kết thúc chỉ còn 10 giây nữa
         LocalDateTime nearlyEndTime = LocalDateTime.now().plusSeconds(10);
         testAuction.setEndTime(nearlyEndTime);

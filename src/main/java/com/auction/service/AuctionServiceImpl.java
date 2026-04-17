@@ -4,8 +4,12 @@ import com.auction.model.Bidder;
 import com.auction.model.Auction;
 import com.auction.model.BidTransaction;
 import com.auction.util.AuctionManager;
-import java.time.LocalDateTime;
 
+// Import 2 class Exception bạn vừa tạo ở Bước 1
+import com.auction.exception.AuctionException;
+import com.auction.exception.BidTooLowException;
+
+import java.time.LocalDateTime;
 
 public class AuctionServiceImpl implements IAuctionService {
 
@@ -13,31 +17,27 @@ public class AuctionServiceImpl implements IAuctionService {
     private AuctionManager auctionManager = AuctionManager.getInstance();
 
     @Override
-    public BidResult placeManualBid(int auctionId, int bidderId, double bidAmount) {
+    public void placeManualBid(int auctionId, int bidderId, double bidAmount) throws AuctionException {
         Auction auction = auctionManager.getAuction(auctionId);
 
         // 1. Kiểm tra tồn tại
         if (auction == null) {
-            return BidResult.INVALID_AUCTION;
+            throw new AuctionException("Lỗi: Không tìm thấy phiên đấu giá hợp lệ.");
         }
 
-        /* KHÓA ĐỒNG THỜI (CONCURRENCY CONTROL)
-         * Dùng synchronized để "khóa" phiên đấu giá này lại.
-         * Ngăn chặn 2 người cùng đặt giá trúng cùng 1 mili-giây.
-         */
+        /* KHÓA ĐỒNG THỜI (CONCURRENCY CONTROL) */
         synchronized (auction) {
             // 2. Validate: Phiên còn mở không?
             if (!auction.isOpen()) {
-                return BidResult.AUCTION_CLOSED;
+                throw new AuctionException("Lỗi: Phiên đấu giá đã kết thúc hoặc chưa mở.");
             }
 
-            // 3. Validate: Giá có hợp lệ không? (Phải lớn hơn giá hiện tại)
+            // 3. Validate: Giá có hợp lệ không?
             if (bidAmount <= auction.getCurrentHighestBid()) {
-                return BidResult.BID_TOO_LOW;
+                throw new BidTooLowException("Lỗi: Giá đặt " + bidAmount + "$ quá thấp. Phải lớn hơn " + auction.getCurrentHighestBid() + "$");
             }
 
             // 4. Thuật toán Anti-sniping (Gia hạn phiên)
-            // Logic: Nếu có bid hợp lệ trong 30 giây cuối cùng, tự động cộng thêm 60 giây
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime timeToTriggerAntiSniping = auction.getEndTime().minusSeconds(30);
 
@@ -64,9 +64,10 @@ public class AuctionServiceImpl implements IAuctionService {
 
             System.out.println("✅ Bidder " + bidderId + " đặt giá thành công: " + bidAmount + "$");
 
+            // Kích hoạt auto-bidding sau khi có người đặt giá thủ công
             triggerAutoBidding(auction);
 
-            return BidResult.SUCCESS;
+            // XÓA DÒNG return BidResult.SUCCESS; (Vì đã chạy đến đây tức là không có Exception nào bị ném ra)
         }
     }
 
@@ -77,8 +78,6 @@ public class AuctionServiceImpl implements IAuctionService {
             return false; // Không cho đăng ký nếu phiên lỗi hoặc đã đóng
         }
 
-        // Tạo tạm một đối tượng Bidder để lưu thông tin cấu hình
-        // Lưu ý: Trong hệ thống thật, bạn sẽ lấy User từ UserDAO trong Database ra
         Bidder autoBidder = new Bidder(bidderId, "User_" + bidderId, "user@gmail.com", "hash");
         autoBidder.setAutoBidEnabled(true);
         autoBidder.setMaxAutoBidAmount(maxBidAmount);
@@ -88,17 +87,16 @@ public class AuctionServiceImpl implements IAuctionService {
             auction.getAutoBidders().add(autoBidder);
             System.out.println("🤖 Bidder " + bidderId + " đã bật Auto-Bid (Max: " + maxBidAmount + ", Bước giá: " + increment + ")");
 
-            // KÍCH HOẠT TỨC THÌ: Vừa bật xong là tự động đặt giá luôn (nếu đủ tiền)
+            // KÍCH HOẠT TỨC THÌ
             triggerAutoBidding(auction);
         }
         return true;
     }
 
-    // HÀM BỔ TRỢ: Đây là nơi diễn ra trận chiến "đấu súng" tự động
+    // HÀM BỔ TRỢ: Đã thêm try-catch để bắt lỗi Exception khi gọi placeManualBid
     private void triggerAutoBidding(Auction auction) {
         boolean autoBidOccurred;
 
-        // Vòng lặp: Chạy liên tục cho đến khi không còn ai đủ tiền đè giá nữa thì thôi
         do {
             autoBidOccurred = false;
             for (Bidder bidder : auction.getAutoBidders()) {
@@ -109,11 +107,15 @@ public class AuctionServiceImpl implements IAuctionService {
 
                 // Nếu tiền trong túi vẫn chịu nổi mức giá mới
                 if (nextRequiredBid <= bidder.getMaxAutoBidAmount()) {
-                    // Dùng chính hàm thủ công lúc nãy để đặt giá
-                    BidResult result = placeManualBid(auction.getId(), bidder.getId(), nextRequiredBid);
-                    if (result == BidResult.SUCCESS) {
+                    try {
+                        // Gọi hàm thủ công, nếu lỗi nó sẽ ném Exception xuống catch
+                        placeManualBid(auction.getId(), bidder.getId(), nextRequiredBid);
                         autoBidOccurred = true;
                         break; // Có giá mới, thoát vòng lặp nhỏ để chạy lại vòng lớn đánh giá lại
+                    } catch (AuctionException e) {
+                        // In ra lỗi nếu bot auto-bid không thành công (ví dụ do nhảy giá quá nhanh)
+                        // Bỏ qua và chuyển sang bidder tiếp theo
+                        System.out.println("⚠️ Auto-Bid cho Bidder " + bidder.getId() + " thất bại: " + e.getMessage());
                     }
                 }
             }
