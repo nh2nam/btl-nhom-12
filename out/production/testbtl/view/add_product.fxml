@@ -24,8 +24,6 @@
                                 <Font name="System Bold" size="17.0" />
                             </font>
                         </Label>
-                        <Button mnemonicParsing="false" onAction="#goToHome" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: transparent; -fx-font-weight: bold; -fx-cursor: hand;" text="MUA HÀNG" />
-                        
                         <VBox VBox.vgrow="ALWAYS" />
                         <Button mnemonicParsing="false" onAction="#handleLogout" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #ff4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text=" ĐĂNG XUẤT">
                             <VBox.margin>

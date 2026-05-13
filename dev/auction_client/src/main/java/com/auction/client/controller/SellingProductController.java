@@ -301,7 +301,7 @@ public class SellingProductController {
     }
 
     @FXML
-    private void goToHome() {
+    private void goHome() {
         stopPolling();
         Main.changeScene("/view/seller.fxml");
     }
