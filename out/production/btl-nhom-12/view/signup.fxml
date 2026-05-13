@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<VBox alignment="CENTER" spacing="20.0" style="-fx-background-color: #f4f4f4;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.SignUpController">
+    <children>
+        <Label text="TẠO TÀI KHOẢN">
+            <font>
+                <Font name="System Bold" size="30.0" />
+            </font>
+            <VBox.margin>
+                <Insets bottom="20.0" />
+            </VBox.margin>
+        </Label>
+
+        <VBox alignment="CENTER" maxWidth="400.0" spacing="15.0">
+            <children>
+                <TextField fx:id="txtUser" promptText="Username" style="-fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #808080; -fx-border-width: 2;">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                    <padding>
+                        <Insets bottom="10.0" left="15.0" right="15.0" top="10.0" />
+                    </padding>
+                </TextField>
+                <TextField fx:id="txtAddress" promptText="Address" style="-fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #808080; -fx-border-width: 2;">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                    <padding>
+                        <Insets bottom="10.0" left="15.0" right="15.0" top="10.0" />
+                    </padding>
+                </TextField>
+                <TextField fx:id="txtPhone" promptText="Phone number" style="-fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #808080; -fx-border-width: 2;">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                    <padding>
+                        <Insets bottom="10.0" left="15.0" right="15.0" top="10.0" />
+                    </padding>
+                </TextField>
+                <TextField fx:id="txtAccountName" promptText="AccountName" style="-fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #808080; -fx-border-width: 2;">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                    <padding>
+                        <Insets bottom="10.0" left="15.0" right="15.0" top="10.0" />
+                    </padding>
+                </TextField>
+                <PasswordField fx:id="txtPass" promptText="Password" style="-fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #808080; -fx-border-width: 2;">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                    <padding>
+                        <Insets bottom="10.0" left="15.0" right="15.0" top="10.0" />
+                    </padding>
+                </PasswordField>
+            </children>
+        </VBox>
+
+        <Label fx:id="lblMessage" textFill="RED">
+            <font>
+                <Font name="System Bold" size="14.0" />
+            </font>
+        </Label>
+
+        <Button fx:id="btnAction" mnemonicParsing="false" onAction="#handleAction" prefWidth="250.0" style="-fx-background-color: #4CAF50; -fx-background-radius: 20; -fx-text-fill: white;" text="Tạo tài khoản">
+            <font>
+                <Font name="System Bold" size="16.0" />
+            </font>
+            <VBox.margin>
+                <Insets top="20.0" />
+            </VBox.margin>
+        </Button>
+
+        <Hyperlink onAction="#goToLogin" text="Hủy và quay lại đăng nhập" textFill="#333333" />
+    </children>
+    <padding>
+        <Insets bottom="50.0" left="50.0" right="50.0" top="50.0" />
+    </padding>
+</VBox>
