@@ -161,14 +161,10 @@ public class AddProductController {
     }
 
     @FXML
-    void goToBuyView(ActionEvent event) {
+    void goToHome(ActionEvent event) {
         Main.changeScene("/view/home.fxml");
     }
 
-    @FXML
-    void goToSellerView(ActionEvent event) {
-        Main.changeScene("/view/seller.fxml");
-    }
 
     @FXML
     void handleLogout(ActionEvent event) {
