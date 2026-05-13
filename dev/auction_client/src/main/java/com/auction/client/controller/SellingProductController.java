@@ -10,9 +10,11 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.geometry.Side;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 
@@ -34,6 +36,7 @@ public class SellingProductController {
     @FXML private Label lblProductName;
     @FXML private Label lblCurrentPrice;
     @FXML private TextField txtBidAmount;
+    @FXML private Label description;
     @FXML private Button btnConfirm;
     @FXML private Text priceCheck;
     @FXML private VBox vboxBidHistory;
@@ -80,6 +83,7 @@ public class SellingProductController {
             String category = (String) selectedAuction.getOrDefault("category", "Other"); // Lấy category ra
 
             // Sửa lại dòng setText của lblProductInfo:
+            description.setText(desc);
             lblProductInfo.setText("📌 Phân loại: " + category + "\n\n📝 Mô tả: " + desc);
 
             String path = (String) selectedAuction.get("itemImagePath");
@@ -292,7 +296,31 @@ public class SellingProductController {
     // -------------------------------------------------------------------------
     // Navigation
     // -------------------------------------------------------------------------
+    @FXML private ContextMenu userMenu, auctionMenu, sessionMenu;
 
+    // Hàm chung để hiện menu khi di chuột vào Label
+    @FXML
+    private void handleShowUserMenu(MouseEvent event) {
+        Label src = (Label) event.getSource();
+        userMenu.show(src, Side.BOTTOM, 0, 0);
+    }
+
+    @FXML
+    private void handleShowAuctionMenu(MouseEvent event) {
+        Label src = (Label) event.getSource();
+        auctionMenu.show(src, Side.BOTTOM, 0, 0);
+    }
+
+    @FXML
+    private void handleShowSessionMenu(MouseEvent event) {
+        Label src = (Label) event.getSource();
+        sessionMenu.show(src, Side.BOTTOM, 0, 0);
+    }
+
+    @FXML
+    private void addNewProduct() {
+        com.auction.client.Main.changeScene("/view/add_product.fxml");
+    }
 
     @FXML
     private void logout() {
