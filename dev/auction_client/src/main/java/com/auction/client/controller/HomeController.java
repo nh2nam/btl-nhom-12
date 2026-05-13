@@ -9,14 +9,11 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextInputDialog;
+import javafx.geometry.Side;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
@@ -339,6 +336,28 @@ public class HomeController {
             vboxProducts.getChildren().add(lbl);
         });
     }
+
+    @FXML private ContextMenu userMenu, auctionMenu, sessionMenu;
+
+    // Hàm chung để hiện menu khi di chuột vào Label
+    @FXML
+    private void handleShowUserMenu(MouseEvent event) {
+        Label src = (Label) event.getSource();
+        userMenu.show(src, Side.BOTTOM, 0, 0);
+    }
+
+    @FXML
+    private void handleShowAuctionMenu(MouseEvent event) {
+        Label src = (Label) event.getSource();
+        auctionMenu.show(src, Side.BOTTOM, 0, 0);
+    }
+
+    @FXML
+    private void handleShowSessionMenu(MouseEvent event) {
+        Label src = (Label) event.getSource();
+        sessionMenu.show(src, Side.BOTTOM, 0, 0);
+    }
+
 
     @FXML
     private void goToSellerScreen() {
