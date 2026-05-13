@@ -1,0 +1,37 @@
+package com.auction.network;
+
+import java.io.PrintWriter;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+// Đây chính là cốt lõi của Observer Pattern
+public class BroadcastManager {
+    // Danh sách chứa các "Cái loa" của tất cả các Client đang kết nối
+    // Dùng CopyOnWriteArrayList để an toàn khi nhiều luồng cùng thêm/xóa
+    private static final List<PrintWriter> observers = new CopyOnWriteArrayList<>();
+
+    // 1. Thêm một người nghe đài mới (Client gửi lệnh SUBSCRIBE)
+    public static void addObserver(PrintWriter out) {
+        observers.add(out);
+    }
+
+    // 2. Xóa người nghe đài khi họ tắt app
+    public static void removeObserver(PrintWriter out) {
+        observers.remove(out);
+    }
+
+    // 3. Hét lên cho tất cả mọi người cùng nghe!
+    public static void broadcastPriceUpdate(int auctionId, double newPrice) {
+        // Đóng gói tin nhắn dạng JSON thủ công cho nhanh
+        String message = String.format("{\"action\":\"UPDATE_PRICE\", \"auctionId\":%d, \"newPrice\":%f}", auctionId, newPrice);
+
+        System.out.println("📢 BROADCAST: " + message);
+        for (PrintWriter out : observers) {
+            try {
+                out.println(message); // Đẩy dữ liệu thẳng về Client
+            } catch (Exception e) {
+                observers.remove(out); // Nếu Client này đứt mạng thì xóa đi
+            }
+        }
+    }
+}

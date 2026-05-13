@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AddProductController">
+    <children>
+        <HBox prefHeight="600.0" prefWidth="900.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <children>
+                <VBox prefHeight="600.0" prefWidth="200.0" style="-fx-background-color: #f4f4f4; -fx-border-color: #ddd; -fx-border-width: 0 1 0 0;">
+                    <children>
+                        <Label fx:id="lblUsername" alignment="CENTER" prefHeight="60.0" prefWidth="200.0" text="username">
+                            <font>
+                                <Font name="System Bold" size="17.0" />
+                            </font>
+                        </Label>
+                        <Button mnemonicParsing="false" onAction="#goToBuyView" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: transparent; -fx-font-weight: bold; -fx-cursor: hand;" text="MUA HÀNG" />
+                        <Button mnemonicParsing="false" onAction="#goToSellerView" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #888; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="BÁN HÀNG" />
+                        <VBox VBox.vgrow="ALWAYS" />
+                        <Button mnemonicParsing="false" onAction="#handleLogout" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #ff4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text=" ĐĂNG XUẤT">
+                            <VBox.margin>
+                                <Insets bottom="10.0" />
+                            </VBox.margin>
+                        </Button>
+                    </children>
+                </VBox>
+
+                <BorderPane style="-fx-background-color: #f4f4f4;" HBox.hgrow="ALWAYS">
+                    <top>
+                        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: transparent; -fx-padding: 25 30 10 30;">
+                            <children>
+                                <Label text="ĐĂNG SẢN PHẨM MỚI" textFill="BLACK">
+                                    <font>
+                                        <Font name="System Bold" size="25.0" />
+                                    </font>
+                                </Label>
+
+                                <Region HBox.hgrow="ALWAYS" />
+
+                                <Button mnemonicParsing="false" onAction="#goToSellerView" prefHeight="40.0" prefWidth="120.0" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5; -fx-cursor: hand;" text="QUAY LẠI">
+                                    <font>
+                                        <Font size="14.0" />
+                                    </font>
+                                </Button>
+                            </children>
+                        </HBox>
+                    </top>
+
+                    <center>
+                        <VBox alignment="CENTER" spacing="20.0" style="-fx-padding: 0 40 40 40;">
+                            <children>
+                                <VBox maxWidth="700.0" spacing="15" style="-fx-padding: 30; -fx-border-radius: 15; -fx-background-radius: 15; -fx-font-size: 16px;">
+                                    <children>
+                                        <Label style="-fx-font-weight: bold;" text="Tên sản phẩm:" />
+                                        <TextField fx:id="txtName" promptText="Ví dụ: Điện thoại Samsung cũ..." style="-fx-padding: 12; -fx-background-radius: 5;" />
+                                        <Label text="Loại sản phẩm:" />
+                                        <ComboBox fx:id="cbCategory" prefWidth="200.0" promptText="Chọn phân loại..." />
+                                        <Label style="-fx-font-weight: bold;" text="Giá khởi điểm ($):" />
+                                        <TextField fx:id="txtPrice" promptText="Ví dụ: 100" style="-fx-padding: 12; -fx-background-radius: 5;" />
+
+                                        <Label style="-fx-font-weight: bold;" text="Ảnh sản phẩm:" />
+                                        <HBox alignment="CENTER_LEFT" spacing="15">
+                                            <children>
+                                                <Button fx:id="btnChooseImage" onAction="#handleChooseImage" style="-fx-background-color: #e0e0e0; -fx-padding: 8 20; -fx-cursor: hand;" text="Chọn ảnh..." />
+                                                <Label fx:id="lblImagePath" text="[Chưa có ảnh]" textFill="#666" />
+                                            </children>
+                                        </HBox>
+
+                                        <Label style="-fx-font-weight: bold;" text="Mô tả sản phẩm:" />
+                                        <TextArea fx:id="txtDesc" prefRowCount="4" promptText="Mô tả tình trạng, xuất xứ, bảo hành..." style="-fx-padding: 10; -fx-background-radius: 5;" wrapText="true" />
+
+                                        <Label style="-fx-font-weight: bold;" text="Thời gian đấu giá:" />
+                                        <HBox alignment="CENTER_LEFT" spacing="10">
+                                            <TextField fx:id="txtDuration" prefWidth="100" promptText="Nhập số" style="-fx-padding: 12; -fx-background-radius: 5;" />
+                                            <javafx.scene.control.ComboBox fx:id="cbDurationUnit" prefWidth="140" />
+                                        </HBox>
+
+                                        <Label fx:id="lblMessage" textFill="RED" wrapText="true">
+                                            <font> <Font name="System Bold" size="15.0" /> </font>
+                                        </Label>
+
+                                        <HBox alignment="CENTER" style="-fx-padding: 15 0 0 0;">
+                                            <children>
+                                                <Button onAction="#saveProduct" prefWidth="300.0" style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18px; -fx-padding: 10; -fx-background-radius: 30; -fx-cursor: hand;" text="Đăng Bán Ngay" />
+                                            </children>
+                                        </HBox>
+                                    </children>
+                                </VBox>
+                            </children>
+                        </VBox>
+                    </center>
+                </BorderPane>
+            </children>
+        </HBox>
+    </children>
+</AnchorPane>
