@@ -61,6 +61,9 @@
                                 </ContextMenu>
                             </contextMenu>
                         </Label>
+                        <Label onMouseClicked="#addNewProduct" style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-cursor: hand;" text="Tạo phiên đấu giá mới"/>
+
+
                     </children>
                     <padding>
                         <Insets left="100.0" />

@@ -27,7 +27,7 @@ public class Main extends Application {
         // Đóng kết nối khi người dùng tắt cửa sổ
         stage.setOnCloseRequest(event -> ServerConnection.getInstance().disconnect());
 
-        changeScene("/view/home.fxml");
+        changeScene("/view/login.fxml");
         primaryStage.setMaximized(true);
         primaryStage.show();
     }

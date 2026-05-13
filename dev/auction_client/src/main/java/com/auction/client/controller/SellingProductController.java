@@ -293,11 +293,6 @@ public class SellingProductController {
     // Navigation
     // -------------------------------------------------------------------------
 
-    @FXML
-    private void goToHome() {
-        stopPolling();
-        Main.changeScene("/view/home.fxml");
-    }
 
     @FXML
     private void logout() {
@@ -306,7 +301,7 @@ public class SellingProductController {
     }
 
     @FXML
-    private void goToSellerScreen() {
+    private void goToHome() {
         stopPolling();
         Main.changeScene("/view/seller.fxml");
     }
