@@ -177,7 +177,7 @@ public class HomeController {
             btnBid.setOnAction(e -> openBidDialog(auctionId, bid));
             info.getChildren().addAll(nameLabel, descLabel, priceLabel, statusLabel, btnBid,categoryLabel);
         } else {
-            info.getChildren().addAll(nameLabel, categoryLabel, descLabel, priceLabel, statusLabel,categoryLabel);        }
+            info.getChildren().addAll(nameLabel, categoryLabel, descLabel, priceLabel, statusLabel);        }
 
         ImageView imgView = new ImageView();
         try {
