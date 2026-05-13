@@ -2,65 +2,83 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ContextMenu?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.HomeController">
+<VBox prefHeight="800.0" prefWidth="1280.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.HomeController">
     <children>
-        <HBox layoutX="126.0" layoutY="106.0" prefHeight="600.0" prefWidth="900.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <HBox alignment="CENTER_LEFT" prefHeight="110.0" style="-fx-background-color: black; -fx-border-color: #333333; -fx-border-width: 0 0 1 0; -fx-padding: 20 30 20 30">
+            <padding>
+                <Insets left="40.0" right="40.0" />
+            </padding>
             <children>
-                <VBox prefHeight="600.0" prefWidth="200.0" style="-fx-background-color: #f4f4f4; -fx-border-color: #ddd; -fx-border-width: 0 1 0 0;">
+                <HBox alignment="CENTER_LEFT" spacing="10.0">
                     <children>
-                        <Label fx:id="lblUsername" alignment="CENTER" prefHeight="60.0" prefWidth="200.0" text="username">
+                        <Label fx:id="lblUsername" onMouseEntered="#handleShowUserMenu" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;">
                             <font>
-                                <Font name="System Bold" size="17.0" />
+                                <Font size="20.0" />
                             </font>
+                            <contextMenu>
+                                <ContextMenu fx:id="userMenu" style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
+                                    <items>
+                                        <MenuItem text="Thông tin cá nhân" />
+                                        <MenuItem text="Sản phẩm của bạn" />
+                                        <MenuItem text="Lịch sử đấu giá thành công" onAction="#goToMyResults"/>
+                                    </items>
+                                </ContextMenu>
+                            </contextMenu>
                         </Label>
-                        <Button mnemonicParsing="false" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #888; -fx-text-fill: white; -fx-font-weight: bold;" text="MUA HÀNG" />
-                        <Button onAction="#goToSellerScreen" mnemonicParsing="false" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: transparent; -fx-font-weight: bold;" text="BÁN HÀNG" />
-                        <Button mnemonicParsing="false" onAction="#goToMyResults" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: transparent; -fx-font-weight: bold;" text="🏆 KẾT QUẢ CỦA TÔI" />
-
-                        <VBox VBox.vgrow="ALWAYS" />
-
-                        <Button onAction="#logout" mnemonicParsing="false" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #ff4444; -fx-text-fill: white; -fx-font-weight: bold;" text=" ĐĂNG XUẤT">
-                            <VBox.margin>
-                                <Insets bottom="10.0" />
-                            </VBox.margin>
-                        </Button>
                     </children>
-                </VBox>
+                </HBox>
 
-                <VBox prefHeight="600.0" prefWidth="700.0" HBox.hgrow="ALWAYS">
+                <HBox alignment="CENTER_LEFT" spacing="50.0" HBox.hgrow="ALWAYS">
                     <children>
-                        <Label prefHeight="105.0" prefWidth="680.0" text="SẢN PHẨM ĐANG ĐẤU GIÁ">
-                            <font>
-                                <Font name="System Bold" size="24.0" />
-                            </font>
-                            <VBox.margin>
-                                <Insets left="20.0" />
-                            </VBox.margin>
+                        <Label onMouseEntered="#handleShowAuctionMenu" style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-cursor: hand;" text="Tài sản đấu giá">
+                            <contextMenu>
+                                <ContextMenu fx:id="auctionMenu" style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
+                                    <items>
+                                        <MenuItem text="Nghệ thuật" />
+                                        <MenuItem text="Điện tủ" />
+                                        <MenuItem text="Phương tiện - xe cộ" />
+                                        <MenuItem text="Tài sản khác" />
+                                    </items>
+                                </ContextMenu>
+                            </contextMenu>
                         </Label>
-                        <Button onAction="#handleRefresh" prefHeight="36.0" prefWidth="140.0"
-                                style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8;"
-                                text="🔄 Làm mới">
-                            <VBox.margin><Insets left="20.0" bottom="5.0" /></VBox.margin>
-                        </Button>
-                        <ScrollPane fitToWidth="true" prefHeight="540.0" prefWidth="700.0" style="-fx-background-color: transparent;">
-                            <content>
-                                <VBox fx:id="vboxProducts" prefWidth="680.0" spacing="10.0">
-                                    <padding>
-                                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                                    </padding>
-                                </VBox>
-                            </content>
-                        </ScrollPane>
+
+                        <Label onMouseEntered="#handleShowSessionMenu" style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-cursor: hand;" text="Phiên đấu giá">
+                            <contextMenu>
+                                <ContextMenu fx:id="sessionMenu" style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
+                                    <items>
+                                        <MenuItem text="Phiên đấu giá đang diễn ra" />
+                                        <MenuItem text="Phiên đấu giá đã kết thúc" />
+                                    </items>
+                                </ContextMenu>
+                            </contextMenu>
+                        </Label>
                     </children>
-                </VBox>
+                    <padding>
+                        <Insets left="100.0" />
+                    </padding>
+                </HBox>
+
+                <HBox alignment="CENTER_RIGHT">
+                    <children>
+                        <Button mnemonicParsing="false" onMouseClicked="#logout" prefHeight="50.0" prefWidth="150.0" style="-fx-background-color: #CC0000; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18; -fx-background-radius: 5; -fx-cursor: hand; -fx-padding: 17 0 17 0" text="Đăng xuất" />
+                    </children>
+                </HBox>
             </children>
         </HBox>
+
+        <ScrollPane fitToHeight="true" fitToWidth="true" style="-fx-background-color: #111111;" VBox.vgrow="ALWAYS">
+            <content>
+                <VBox fx:id="vboxProducts" spacing="20.0" style="-fx-background-color: black; -fx-padding: 30 150 50 150;" />
+            </content>
+        </ScrollPane>
     </children>
-</AnchorPane>
+</VBox>
