@@ -7,10 +7,9 @@ import com.auction.client.network.ServerConnection;
 import com.auction.client.session.UserSession;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
+import javafx.geometry.Side;
+import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import java.nio.file.Files;
@@ -160,6 +159,27 @@ public class AddProductController {
         txtDuration.clear();
     }
 
+    @FXML private ContextMenu userMenu, auctionMenu, sessionMenu;
+
+    // Hàm chung để hiện menu khi di chuột vào Label
+    @FXML
+    private void handleShowUserMenu(MouseEvent event) {
+        Label src = (Label) event.getSource();
+        userMenu.show(src, Side.BOTTOM, 0, 0);
+    }
+
+    @FXML
+    private void handleShowAuctionMenu(MouseEvent event) {
+        Label src = (Label) event.getSource();
+        auctionMenu.show(src, Side.BOTTOM, 0, 0);
+    }
+
+    @FXML
+    private void handleShowSessionMenu(MouseEvent event) {
+        Label src = (Label) event.getSource();
+        sessionMenu.show(src, Side.BOTTOM, 0, 0);
+    }
+
     @FXML
     void goToHome(ActionEvent event) {
         Main.changeScene("/view/home.fxml");
@@ -167,7 +187,7 @@ public class AddProductController {
 
 
     @FXML
-    void handleLogout(ActionEvent event) {
+    void logout(ActionEvent event) {
         UserSession.getInstance().logout();
         Main.changeScene("/view/login.fxml");
     }

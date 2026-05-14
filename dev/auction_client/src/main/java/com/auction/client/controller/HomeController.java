@@ -421,13 +421,6 @@ public class HomeController {
         sessionMenu.show(src, Side.BOTTOM, 0, 0);
     }
 
-
-    @FXML
-    private void goToSellerScreen() {
-        stopListening();
-        Main.changeScene("/view/seller.fxml");
-    }
-
     @FXML
     private void goToMyResults() {
         stopListening();
