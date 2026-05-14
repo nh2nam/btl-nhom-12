@@ -48,8 +48,9 @@
                                 <ContextMenu fx:id="auctionMenu" style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
                                     <items>
                                         <MenuItem text="Nghệ thuật" />
-                                        <MenuItem text="Điện tủ" />
-                                        <MenuItem text="Phương tiện - xe cộ" />
+                                        <MenuItem text="Điện tử" />
+                                        <MenuItem text="Bất động sản" />
+                                        <MenuItem text="Thời trang" />
                                         <MenuItem text="Tài sản khác" />
                                     </items>
                                 </ContextMenu>
@@ -137,7 +138,7 @@
 
                                 <VBox spacing="10.0">
                                     <children>
-                                        <Label text="Giá khởi điểm ($):" textFill="WHITE">
+                                        <Label text="Giá khởi điểm (VND):" textFill="WHITE">
                                             <font>
                                                 <Font name="System Bold" size="18.0" />
                                             </font>
