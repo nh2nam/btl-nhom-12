@@ -77,7 +77,7 @@ public class SellingProductController {
 
             Object bidObj = selectedAuction.get("startingPrice");
             double price = (bidObj instanceof Number) ? ((Number) bidObj).doubleValue() : 0.0;
-            lblCurrentPrice.setText(String.format("Giá hiện tại: %,.0f VNĐ", price));
+            lblCurrentPrice.setText(String.format(" %,.0f VNĐ", price));
 
             String desc = (String) selectedAuction.getOrDefault("description", "Không có mô tả.");
             String category = (String) selectedAuction.getOrDefault("category", "Other"); // Lấy category ra
@@ -331,7 +331,7 @@ public class SellingProductController {
     @FXML
     private void goHome() {
         stopPolling();
-        Main.changeScene("/view/seller.fxml");
+        Main.changeScene("/view/home.fxml");
     }
 
     // -------------------------------------------------------------------------
