@@ -180,9 +180,9 @@ public class SellingProductController {
         VBox content = new VBox(10);
         content.setStyle("-fx-padding: 10;");
         TextField txtMax = new TextField();
-        txtMax.setPromptText("Giá tối đa ($)");
+        txtMax.setPromptText("Giá tối đa (VND)");
         TextField txtIncrement = new TextField();
-        txtIncrement.setPromptText("Bước giá mỗi lần ($)");
+        txtIncrement.setPromptText("Bước giá mỗi lần (VND)");
         content.getChildren().addAll(
                 new Label("Giá tối đa bạn chấp nhận:"), txtMax,
                 new Label("Bước tăng mỗi lần đặt:"), txtIncrement
@@ -269,7 +269,7 @@ public class SellingProductController {
                         ? String.valueOf(bid.get("bidderName"))
                         : "Bidder #" + ((Number) bid.get("bidderId")).intValue();
 
-                Label lbl = new Label(String.format("%s  —  %,.0f$  —  %s", bidderName, amount, bidTime));
+                Label lbl = new Label(String.format("%s  —  %,.0fVND  —  %s", bidderName, amount, bidTime));
                 lbl.setStyle("-fx-font-size: 13px; -fx-padding: 4 8; -fx-background-color: #f0f0f0; -fx-background-radius: 5;");
                 vboxBidHistory.getChildren().add(lbl);
             }

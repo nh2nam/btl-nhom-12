@@ -176,7 +176,7 @@ public class HomeController {
         descLabel.setStyle("-fx-text-fill: #aaa; -fx-font-size: 13px;");
         descLabel.setWrapText(true);
 
-        Label priceLabel = new Label(String.format("Giá: %,.0f $", bid));
+        Label priceLabel = new Label(String.format("Giá: %,.0f VND", bid));
         priceLabel.setStyle("-fx-text-fill: #ff5252; -fx-font-size: 16px; -fx-font-weight: bold;");
 
         Label statusLabel = new Label("Trạng thái: " + status + "\nKết thúc: " + endTime);
@@ -339,7 +339,7 @@ public class HomeController {
                     String role   = isSeller ? "Người bán" : (isWinner ? "🏆 Người thắng" : "Người tham gia");
                     String color  = isWinner ? "#28a745" : (isSeller ? "#2196F3" : "#888");
 
-                    Label lbl = new Label(String.format("%s  |  %s  |  Giá cuối: %,.0f$  |  %s",
+                    Label lbl = new Label(String.format("%s  |  %s  |  Giá cuối: %,.0fVND  |  %s",
                             role, itemName, finalPrice, endTime));
                     lbl.setStyle("-fx-font-size: 13px; -fx-padding: 8; -fx-background-color: #f9f9f9; "
                             + "-fx-background-radius: 5; -fx-text-fill: " + color + ";");
