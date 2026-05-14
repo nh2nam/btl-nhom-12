@@ -24,8 +24,6 @@
                                 <Font name="System Bold" size="17.0" />
                             </font>
                         </Label>
-                        <Button mnemonicParsing="false" onAction="#goToBuyView" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: transparent; -fx-font-weight: bold; -fx-cursor: hand;" text="MUA HÀNG" />
-                        <Button mnemonicParsing="false" onAction="#goToSellerView" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #888; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="BÁN HÀNG" />
                         <VBox VBox.vgrow="ALWAYS" />
                         <Button mnemonicParsing="false" onAction="#handleLogout" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #ff4444; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text=" ĐĂNG XUẤT">
                             <VBox.margin>
@@ -47,7 +45,7 @@
 
                                 <Region HBox.hgrow="ALWAYS" />
 
-                                <Button mnemonicParsing="false" onAction="#goToSellerView" prefHeight="40.0" prefWidth="120.0" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5; -fx-cursor: hand;" text="QUAY LẠI">
+                                <Button mnemonicParsing="false" onAction="#goToHome" prefHeight="40.0" prefWidth="120.0" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5; -fx-cursor: hand;" text="QUAY LẠI">
                                     <font>
                                         <Font size="14.0" />
                                     </font>
@@ -63,7 +61,8 @@
                                     <children>
                                         <Label style="-fx-font-weight: bold;" text="Tên sản phẩm:" />
                                         <TextField fx:id="txtName" promptText="Ví dụ: Điện thoại Samsung cũ..." style="-fx-padding: 12; -fx-background-radius: 5;" />
-
+                                        <Label text="Loại sản phẩm:" />
+                                        <ComboBox fx:id="cbCategory" prefWidth="200.0" promptText="Chọn phân loại..." />
                                         <Label style="-fx-font-weight: bold;" text="Giá khởi điểm ($):" />
                                         <TextField fx:id="txtPrice" promptText="Ví dụ: 100" style="-fx-padding: 12; -fx-background-radius: 5;" />
 
