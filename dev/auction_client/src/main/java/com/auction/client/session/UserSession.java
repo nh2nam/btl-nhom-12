@@ -6,6 +6,7 @@ public class UserSession {
     // Các thông tin cơ bản cần lưu khi User đăng nhập
     private int userId;
     private String username;
+    private String displayName;
     private String role;
 
     private UserSession() {}
@@ -24,13 +25,16 @@ public class UserSession {
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
 
+    public String getDisplayName() { return displayName != null ? displayName : username; }
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
+
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
 
-    // Hàm gộp để lưu thông tin đăng nhập từ Controller
-    public void login(int id, String username, String role) {
+    public void login(int id, String username, String displayName, String role) {
         this.userId = id;
         this.username = username;
+        this.displayName = displayName;
         this.role = role;
     }
 
@@ -44,6 +48,7 @@ public class UserSession {
     public void logout() {
         this.userId = 0;
         this.username = null;
+        this.displayName = null;
         this.role = null;
     }
 }

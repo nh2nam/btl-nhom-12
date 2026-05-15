@@ -34,7 +34,9 @@ public class SellingProductController {
     @FXML private ImageView imgProduct;
     @FXML private Label lblProductInfo;
     @FXML private Label lblProductName;
+    @FXML private Label lblStartingPrice;
     @FXML private Label lblCurrentPrice;
+    @FXML private Label lblEndTime;
     @FXML private TextField txtBidAmount;
     @FXML private Label description;
     @FXML private Button btnConfirm;
@@ -53,7 +55,7 @@ public class SellingProductController {
 
     @FXML
     public void initialize() {
-        lblUsername.setText(AppData.username);
+        lblUsername.setText(UserSession.getInstance().getDisplayName());
         setProductData(AppData.selectedAuction);
 
         btnConfirm.setStyle(GRAY_STYLE);
@@ -77,7 +79,14 @@ public class SellingProductController {
 
             Object bidObj = selectedAuction.get("startingPrice");
             double price = (bidObj instanceof Number) ? ((Number) bidObj).doubleValue() : 0.0;
-            lblCurrentPrice.setText(String.format(" %,.0f VNĐ", price));
+            lblCurrentPrice.setText(String.format("%,.0f VNĐ", price));
+
+            Object startingPriceObj = selectedAuction.get("itemStartingPrice");
+            double startingPrice = (startingPriceObj instanceof Number) ? ((Number) startingPriceObj).doubleValue() : price;
+            lblStartingPrice.setText(String.format("%,.0f VNĐ", startingPrice));
+
+            String endTime = (String) selectedAuction.getOrDefault("endTime", "");
+            lblEndTime.setText(endTime.isEmpty() ? "Không xác định" : endTime);
 
             String desc = (String) selectedAuction.getOrDefault("description", "Không có mô tả.");
             String category = (String) selectedAuction.getOrDefault("category", "Other"); // Lấy category ra
@@ -142,7 +151,7 @@ public class SellingProductController {
 
             if (response.isSuccess()) {
                 currentItem.setPrice(newPrice);
-                lblCurrentPrice.setText(String.format("Giá hiện tại: %,.0f VNĐ", newPrice));
+                lblCurrentPrice.setText(String.format("%,.0f VNĐ", newPrice));
                 priceCheck.setText("Đặt giá thành công!");
                 priceCheck.setStyle("-fx-fill: green;");
                 loadBidHistory(); // Refresh lịch sử ngay sau khi đặt
@@ -257,7 +266,7 @@ public class SellingProductController {
 
             if (currentItem != null && highestBid > currentItem.getPrice()) {
                 currentItem.setPrice(highestBid);
-                lblCurrentPrice.setText(String.format("Giá hiện tại: %,.0f VNĐ", highestBid));
+                lblCurrentPrice.setText(String.format("%,.0f VNĐ", highestBid));
             }
 
             // Hiển thị mới nhất lên đầu
@@ -270,7 +279,7 @@ public class SellingProductController {
                         : "Bidder #" + ((Number) bid.get("bidderId")).intValue();
 
                 Label lbl = new Label(String.format("%s  —  %,.0fVND  —  %s", bidderName, amount, bidTime));
-                lbl.setStyle("-fx-font-size: 13px; -fx-padding: 4 8; -fx-background-color: #f0f0f0; -fx-background-radius: 5;");
+                lbl.setStyle("-fx-font-size: 13px; -fx-padding: 4 0; -fx-text-fill: #cccccc;");
                 vboxBidHistory.getChildren().add(lbl);
             }
         });

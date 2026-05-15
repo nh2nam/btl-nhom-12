@@ -40,7 +40,7 @@ public class HomeController {
     @FXML
     public void initialize() {
         if (UserSession.getInstance().isLoggedIn()) {
-            AppData.username = UserSession.getInstance().getUsername();
+            AppData.username = UserSession.getInstance().getDisplayName();
             lblUsername.setText(AppData.username);
         }
         loadAuctionsFromServer();
