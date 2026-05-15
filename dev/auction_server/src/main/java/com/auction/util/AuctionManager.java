@@ -81,12 +81,13 @@ public class AuctionManager {
     }
 
     public Auction getAuction(int id) {
-        refreshFromDB();
+        // KHÔNG refreshFromDB() ở đây — dùng RAM để đảm bảo tính nhất quán khi bid
+        // RAM luôn được cập nhật ngay trong synchronized block của processBid()
         return activeAuctions.get(id);
     }
 
     public Collection<Auction> getAllAuctions() {
-        refreshFromDB(); // Đảm bảo luôn lấy dữ liệu mới nhất từ DB trước khi trả về cho Service
+        refreshFromDB(); // Chỉ dùng khi hiển thị danh sách, không dùng trong luồng bid
         return activeAuctions.values();
     }
 
