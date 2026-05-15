@@ -47,6 +47,7 @@ public class LoginController {
                 UserSession.getInstance().login(
                         ((Number) userInfo.get("id")).intValue(),
                         (String) userInfo.get("username"),
+                        (String) userInfo.getOrDefault("displayName", userInfo.get("username")),
                         (String) userInfo.get("role")
                 );
             }

@@ -154,6 +154,7 @@ public class ClientHandler implements Runnable {
                 Map<String, Object> userInfo = new HashMap<>();
                 userInfo.put("id", matchedUser.getId());
                 userInfo.put("username", matchedUser.getUsername());
+                userInfo.put("displayName", matchedUser.getEmail()); // tên người dùng (account_name)
 
                 if (matchedUser instanceof Seller) userInfo.put("role", "SELLER");
                 else if (matchedUser instanceof Admin) userInfo.put("role", "ADMIN");
