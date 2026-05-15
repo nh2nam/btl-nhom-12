@@ -236,7 +236,8 @@ public class ClientHandler implements Runnable {
                     map.put("itemImagePath", item.getImagePath());
 
                     map.put("category", item.getCategory());
-                    map.put("startingPrice", auction.getCurrentHighestBid());
+                    map.put("itemStartingPrice", item.getStartingPrice()); // giá khởi điểm gốc của item
+                    map.put("startingPrice", auction.getCurrentHighestBid()); // giá hiện tại đang đấu giá
                     map.put("status", auction.getStatus());
 
                     String formattedEnd = auction.getEndTime().toString().replace("T", " ");
