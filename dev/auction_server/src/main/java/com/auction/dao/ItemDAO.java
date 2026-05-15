@@ -11,7 +11,7 @@ public class ItemDAO {
     private static final Logger LOGGER = Logger.getLogger(ItemDAO.class.getName());
 
     public void insertItem(Item item) {
-        String sql = "INSERT INTO items (name, description, starting_price, image_path,category) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO items (name, description, starting_price, image_path,category) VALUES (?, ?, ?, ?,?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
