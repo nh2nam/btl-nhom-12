@@ -1,7 +1,5 @@
 package com.auction.client.model;
 
-import com.auction.model.User;
-
 public class Seller extends User {
     // Seller có thể có thêm điểm uy tín (rating)
     private double rating;

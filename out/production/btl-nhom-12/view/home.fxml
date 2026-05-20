@@ -10,25 +10,32 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="800.0" prefWidth="1280.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.HomeController">
+<VBox prefHeight="800.0" prefWidth="1280.0"
+      xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.auction.client.controller.HomeController">
     <children>
-        <HBox alignment="CENTER_LEFT" prefHeight="110.0" style="-fx-background-color: black; -fx-border-color: #333333; -fx-border-width: 0 0 1 0; -fx-padding: 20 30 20 30">
-            <padding>
-                <Insets left="40.0" right="40.0" />
-            </padding>
+
+        <!-- ===== NAVBAR (cùng cấu trúc với selling_product.fxml) ===== -->
+        <HBox alignment="CENTER_LEFT" prefHeight="110.0"
+              style="-fx-background-color: black; -fx-border-color: #333333; -fx-border-width: 0 0 1 0; -fx-padding: 20 30 20 30">
+            <padding><Insets left="40.0" right="40.0" /></padding>
             <children>
+
                 <HBox alignment="CENTER_LEFT" spacing="10.0">
                     <children>
-                        <Label fx:id="lblUsername" onMouseEntered="#handleShowUserMenu" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;">
-                            <font>
-                                <Font size="20.0" />
-                            </font>
+                        <Label fx:id="lblUsername"
+                               onMouseEntered="#handleShowUserMenu"
+                               style="-fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;">
+                            <font><Font size="20.0" /></font>
                             <contextMenu>
-                                <ContextMenu fx:id="userMenu" style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
+                                <ContextMenu fx:id="userMenu"
+                                             style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
                                     <items>
                                         <MenuItem text="Thông tin cá nhân" />
                                         <MenuItem text="Sản phẩm của bạn" />
                                         <MenuItem text="Lịch sử đấu giá thành công" onAction="#goToMyResults"/>
+                                        <MenuItem text="Đăng xuất" onAction="#logout"/>
                                     </items>
                                 </ContextMenu>
                             </contextMenu>
@@ -37,45 +44,47 @@
                 </HBox>
 
                 <HBox alignment="CENTER_LEFT" spacing="50.0" HBox.hgrow="ALWAYS">
+                    <padding><Insets left="100.0" /></padding>
                     <children>
-                        <Label onMouseEntered="#handleShowAuctionMenu" style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-cursor: hand;" text="Tài sản đấu giá">
+                        <Label onMouseEntered="#handleShowAuctionMenu"
+                               style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-cursor: hand;"
+                               text="Tài sản đấu giá">
                             <contextMenu>
-                                <ContextMenu fx:id="auctionMenu" style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
+                                <ContextMenu fx:id="auctionMenu"
+                                             style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
                                     <items>
-                                        <MenuItem text="Nghệ thuật" />
-                                        <MenuItem text="Điện tử" />
-                                        <MenuItem text="Bất động sản" />
-                                        <MenuItem text="Thời trang" />
-                                        <MenuItem text="Tài sản khác" />
+                                        <MenuItem text="Nghệ thuật" onAction="#filterByCategory"/>
+                                        <MenuItem text="Điện tử" onAction="#filterByCategory"/>
+                                        <MenuItem text="Bất động sản" onAction="#filterByCategory"/>
+                                        <MenuItem text="Thời trang" onAction="#filterByCategory"/>
+                                        <MenuItem text="Tài sản khác" onAction="#filterByCategory"/>
                                     </items>
                                 </ContextMenu>
                             </contextMenu>
                         </Label>
 
-                        <Label onMouseEntered="#handleShowSessionMenu" style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-cursor: hand;" text="Phiên đấu giá">
+                        <Label onMouseEntered="#handleShowSessionMenu"
+                               style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-cursor: hand;"
+                               text="Phiên đấu giá">
                             <contextMenu>
-                                <ContextMenu fx:id="sessionMenu" style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
+                                <ContextMenu fx:id="sessionMenu"
+                                             style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
                                     <items>
-                                        <MenuItem text="Phiên đấu giá đang diễn ra" />
-                                        <MenuItem text="Phiên đấu giá đã kết thúc" />
+                                        <MenuItem text="Tất cả phiên đấu giá" onAction="#filterByStatus"/>
+                                        <MenuItem text="Phiên đấu giá đang diễn ra" onAction="#filterByStatus"/>
+                                        <MenuItem text="Phiên đấu giá đã kết thúc" onAction="#filterByStatus"/>
                                     </items>
                                 </ContextMenu>
                             </contextMenu>
                         </Label>
-                        <Label onMouseClicked="#addNewProduct" style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-cursor: hand;" text="Tạo phiên đấu giá mới"/>
 
-
-                    </children>
-                    <padding>
-                        <Insets left="100.0" />
-                    </padding>
-                </HBox>
-
-                <HBox alignment="CENTER_RIGHT">
-                    <children>
-                        <Button mnemonicParsing="false" onMouseClicked="#logout" prefHeight="50.0" prefWidth="150.0" style="-fx-background-color: #CC0000; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18; -fx-background-radius: 5; -fx-cursor: hand; -fx-padding: 17 0 17 0" text="Đăng xuất" />
+                        <Label onMouseClicked="#addNewProduct"
+                               style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-cursor: hand;"
+                               text="Tạo phiên đấu giá mới"/>
                     </children>
                 </HBox>
+
+
             </children>
         </HBox>
 
@@ -84,5 +93,6 @@
                 <VBox fx:id="vboxProducts" spacing="20.0" style="-fx-background-color: black; -fx-padding: 30 150 50 150;" />
             </content>
         </ScrollPane>
+
     </children>
 </VBox>

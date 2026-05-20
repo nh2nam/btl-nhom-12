@@ -1,7 +1,5 @@
 package com.auction.client.model;
 
-import com.auction.model.Entity;
-
 public abstract class User extends Entity {
     private String username;
     private String email;

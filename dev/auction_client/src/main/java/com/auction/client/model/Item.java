@@ -1,29 +1,50 @@
 package com.auction.client.model;
 
-import java.util.Map;
-
-public class Item {
+public abstract class Item extends Entity {
     private String name;
+    private String description;
     private double startingPrice;
     private String imagePath;
-    private String description;
 
-    public Item(String name, double price, String imagePath, String descrpition) {
+    public Item(int id, String name, String description, double startingPrice, String imagePath) {
+        super(id);
         this.name = name;
-        this.startingPrice = price;
+        this.description = description;
+        this.startingPrice = startingPrice;
         this.imagePath = imagePath;
-        this.description = descrpition;
     }
 
-    // Getters
-    public String getName() { return name; }
-    public double getPrice() { return startingPrice; }
-    public String getImagePath() { return imagePath; }
-    public String getDescription() { return description; }
+    public abstract String getCategory();
 
-    //Setter
-    public void setName(String name) { this.name = name; }
-    public void setPrice(double price) { this.startingPrice = price; }
-    public void setImagePath(String imagePath) {this.imagePath = imagePath; }
-    public void setDescrpition (String descrpition) { this.description = descrpition; }
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public double getStartingPrice() {
+        return startingPrice;
+    }
+
+    public void setStartingPrice(double startingPrice) {
+        this.startingPrice = startingPrice;
+    }
+
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
+    }
 }

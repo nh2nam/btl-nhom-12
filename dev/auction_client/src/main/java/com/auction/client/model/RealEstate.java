@@ -1,7 +1,5 @@
 package com.auction.client.model;
 
-import com.auction.model.Item;
-
 public class RealEstate extends Item {
     public RealEstate(int id, String name, String description, double startingPrice, String imagePath) {
         super(id, name, description, startingPrice, imagePath);

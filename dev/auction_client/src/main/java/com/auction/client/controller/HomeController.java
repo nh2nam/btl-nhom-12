@@ -7,12 +7,16 @@ import com.auction.client.network.ServerConnection;
 import com.auction.client.session.UserSession;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Side;
+import javafx.util.Duration;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.event.EventHandler;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -21,9 +25,11 @@ import javafx.scene.layout.VBox;
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Type;
 import java.util.Base64;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +42,22 @@ public class HomeController {
     private final Gson gson = new Gson();
 
     private java.net.Socket radioSocket;
+    private List<Map<String, Object>> allAuctions = new ArrayList<>();
+    private String categoryFilter;
+    private String statusFilter;
+
+    private static final Map<String, String> MENU_TO_CATEGORY = Map.of(
+            "Nghệ thuật", "Arts",
+            "Điện tử", "Electronics",
+            "Bất động sản", "Real estate",
+            "Thời trang", "Fashion",
+            "Tài sản khác", "Other"
+    );
+
+    private static final Map<String, String> MENU_TO_STATUS = Map.of(
+            "Phiên đấu giá đang diễn ra", "RUNNING",
+            "Phiên đấu giá đã kết thúc", "FINISHED"
+    );
 
     @FXML
     public void initialize() {
@@ -48,85 +70,7 @@ public class HomeController {
         startListeningForPrices();
     }
 
-    /*private void loadAuctionsFromServer() {
-        Response response = ServerConnection.getInstance().send("GET_AUCTIONS", null);
 
-        if (!response.isSuccess()) {
-            showError("Không thể tải danh sách đấu giá: " + response.getMessage());
-            return;
-        }
-
-        Type listType = new TypeToken<List<Map<String, Object>>>(){}.getType();
-        List<Map<String, Object>> auctions = null;
-        try {
-            Object rawData = response.getData();
-            if (rawData instanceof String) {
-                auctions = gson.fromJson((String) rawData, listType);
-            } else if (rawData instanceof List) {
-                auctions = (List<Map<String, Object>>) rawData;
-            } else {
-                auctions = gson.fromJson(gson.toJson(rawData), listType);
-            }
-        } catch (Exception e) {
-            showError("Lỗi đọc dữ liệu từ Server!");
-            e.printStackTrace();
-            return;
-        }
-
-        if (auctions == null || auctions.isEmpty()) {
-            Platform.runLater(() -> {
-                vboxProducts.getChildren().clear();
-                Label lbl = new Label("Hiện chưa có phiên đấu giá nào.");
-                lbl.setStyle("-fx-text-fill: #888; -fx-font-size: 14px; -fx-padding: 20;");
-                vboxProducts.getChildren().add(lbl);
-            });
-            return;
-        }
-
-        final List<Map<String, Object>> finalAuctions = auctions;
-        Platform.runLater(() -> {
-            vboxProducts.getChildren().clear();
-
-            // Tách thành 2 nhóm và sắp xếp theo endTime mới nhất lên đầu
-            List<Map<String, Object>> running = finalAuctions.stream()
-                    .filter(a -> "RUNNING".equals(a.get("status")))
-                    .sorted((a, b) -> String.valueOf(b.getOrDefault("endTime", ""))
-                            .compareTo(String.valueOf(a.getOrDefault("endTime", ""))))
-                    .collect(java.util.stream.Collectors.toList());
-
-            List<Map<String, Object>> finished = finalAuctions.stream()
-                    .filter(a -> "FINISHED".equals(a.get("status")))
-                    .sorted((a, b) -> String.valueOf(b.getOrDefault("endTime", ""))
-                            .compareTo(String.valueOf(a.getOrDefault("endTime", ""))))
-                    .collect(java.util.stream.Collectors.toList());
-
-            // Section RUNNING
-            if (!running.isEmpty()) {
-                Label runningHeader = new Label("🟢 Đang diễn ra (" + running.size() + ")");
-                runningHeader.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2e7d32; -fx-padding: 8 0 4 4;");
-                vboxProducts.getChildren().add(runningHeader);
-                for (Map<String, Object> auction : running) {
-                    vboxProducts.getChildren().add(createAuctionItem(auction));
-                }
-            }
-
-            // Section FINISHED
-            if (!finished.isEmpty()) {
-                Label finishedHeader = new Label("🔴 Đã kết thúc (" + finished.size() + ")");
-                finishedHeader.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #888; -fx-padding: 16 0 4 4;");
-                vboxProducts.getChildren().add(finishedHeader);
-                for (Map<String, Object> auction : finished) {
-                    vboxProducts.getChildren().add(createAuctionItem(auction));
-                }
-            }
-
-            if (running.isEmpty() && finished.isEmpty()) {
-                Label lbl = new Label("Hiện chưa có phiên đấu giá nào.");
-                lbl.setStyle("-fx-text-fill: #888; -fx-font-size: 14px; -fx-padding: 20;");
-                vboxProducts.getChildren().add(lbl);
-            }
-        });
-    }*/
 
     private VBox createAuctionItem(Map<String, Object> auction) {
         VBox itemBox = new VBox();
@@ -165,7 +109,9 @@ public class HomeController {
         String itemName = (String) auction.getOrDefault("name", "Sản phẩm #" + auctionId);
         String desc     = (String) auction.getOrDefault("description", "");
         String status   = (String) auction.getOrDefault("status", "UNKNOWN");
-        double bid      = auction.get("startingPrice") != null ? ((Number) auction.get("startingPrice")).doubleValue() : 0;
+        Object currentBidObj = auction.get("currentHighestBid");
+        double bid = (currentBidObj instanceof Number) ? ((Number) currentBidObj).doubleValue()
+                : (auction.get("startingPrice") instanceof Number ? ((Number) auction.get("startingPrice")).doubleValue() : 0);
         String endTime  = (String) auction.getOrDefault("endTime", "");
 
         Label nameLabel = new Label(itemName);
@@ -226,37 +172,70 @@ public class HomeController {
             return;
         }
 
-        if (auctions == null || auctions.isEmpty()) {
-            Platform.runLater(() -> {
-                vboxProducts.getChildren().clear();
-                Label lbl = new Label("Hiện chưa có phiên đấu giá nào.");
-                lbl.setStyle("-fx-text-fill: #888; -fx-font-size: 18px; -fx-padding: 20;");
-                vboxProducts.getChildren().add(lbl);
-            });
+        allAuctions = (auctions != null) ? auctions : new ArrayList<>();
+        Platform.runLater(this::renderAuctionList);
+    }
+
+    @FXML
+    private void filterByCategory(ActionEvent event) {
+        MenuItem item = (MenuItem) event.getSource();
+        categoryFilter = MENU_TO_CATEGORY.get(item.getText());
+        auctionMenu.hide();
+        renderAuctionList();
+    }
+
+    @FXML
+    private void filterByStatus(ActionEvent event) {
+        MenuItem item = (MenuItem) event.getSource();
+        String menuText = item.getText();
+        if ("Tất cả phiên đấu giá".equals(menuText)) {
+            statusFilter = null;
+            loadAuctionsFromServer();
+        } else {
+            statusFilter = MENU_TO_STATUS.get(menuText);
+            renderAuctionList();
+        }
+        sessionMenu.hide();
+    }
+
+    private boolean matchesCategoryFilter(Map<String, Object> auction) {
+        if (categoryFilter == null) return true;
+        String category = String.valueOf(auction.getOrDefault("category", ""));
+        return categoryFilter.equalsIgnoreCase(category);
+    }
+
+    private boolean matchesStatusFilter(Map<String, Object> auction) {
+        if (statusFilter == null) return true;
+        return statusFilter.equals(auction.get("status"));
+    }
+
+    private void renderAuctionList() {
+        vboxProducts.getChildren().clear();
+
+        List<Map<String, Object>> filtered = allAuctions.stream()
+                .filter(a -> matchesCategoryFilter(a) && matchesStatusFilter(a))
+                .collect(Collectors.toList());
+
+        if (filtered.isEmpty()) {
+            Label lbl = new Label(buildEmptyFilterMessage());
+            lbl.setStyle("-fx-text-fill: #888; -fx-font-size: 18px; -fx-padding: 20;");
+            vboxProducts.getChildren().add(lbl);
             return;
         }
 
-        final List<Map<String, Object>> finalAuctions = auctions;
-        Platform.runLater(() -> {
-            vboxProducts.getChildren().clear();
-
-            // TĂNG LỀ 2 BÊN RỘNG RA (Top: 30, Right: 150, Bottom: 50, Left: 150)
-
-            // Tách thành 2 nhóm và sắp xếp theo endTime mới nhất lên đầu
-            List<Map<String, Object>> running = finalAuctions.stream()
+        List<Map<String, Object>> running = filtered.stream()
                     .filter(a -> "RUNNING".equals(a.get("status")))
                     .sorted((a, b) -> String.valueOf(b.getOrDefault("endTime", ""))
                             .compareTo(String.valueOf(a.getOrDefault("endTime", ""))))
-                    .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
 
-            List<Map<String, Object>> finished = finalAuctions.stream()
+        List<Map<String, Object>> finished = filtered.stream()
                     .filter(a -> "FINISHED".equals(a.get("status")))
                     .sorted((a, b) -> String.valueOf(b.getOrDefault("endTime", ""))
                             .compareTo(String.valueOf(a.getOrDefault("endTime", ""))))
-                    .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
 
-            // Section RUNNING
-            if (!running.isEmpty()) {
+        if (!running.isEmpty()) {
                 Label runningHeader = new Label("🟢 Đang diễn ra (" + running.size() + ")");
                 // Chỉnh lại cỡ chữ to hơn, màu xanh sáng nổi bật trên nền đen
                 runningHeader.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #4CAF50; -fx-padding: 0 0 20 0;");
@@ -270,11 +249,10 @@ public class HomeController {
                 for (Map<String, Object> auction : running) {
                     runningFlow.getChildren().add(createAuctionItem(auction));
                 }
-                vboxProducts.getChildren().add(runningFlow);
-            }
+            vboxProducts.getChildren().add(runningFlow);
+        }
 
-            // Section FINISHED
-            if (!finished.isEmpty()) {
+        if (!finished.isEmpty()) {
                 Label finishedHeader = new Label("🔴 Đã kết thúc (" + finished.size() + ")");
                 // Chỉnh lại cỡ chữ to hơn, màu xám sáng
                 finishedHeader.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #aaaaaa; -fx-padding: 40 0 20 0;");
@@ -288,15 +266,40 @@ public class HomeController {
                 for (Map<String, Object> auction : finished) {
                     finishedFlow.getChildren().add(createAuctionItem(auction));
                 }
-                vboxProducts.getChildren().add(finishedFlow);
-            }
+            vboxProducts.getChildren().add(finishedFlow);
+        }
+    }
 
-            if (running.isEmpty() && finished.isEmpty()) {
-                Label lbl = new Label("Hiện chưa có phiên đấu giá nào.");
-                lbl.setStyle("-fx-text-fill: #888; -fx-font-size: 18px; -fx-padding: 20;");
-                vboxProducts.getChildren().add(lbl);
-            }
-        });
+    private String categoryLabel(String category) {
+        return MENU_TO_CATEGORY.entrySet().stream()
+                .filter(e -> e.getValue().equalsIgnoreCase(category))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(category);
+    }
+
+    private String statusLabel(String status) {
+        return MENU_TO_STATUS.entrySet().stream()
+                .filter(e -> e.getValue().equals(status))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(status);
+    }
+
+    private String buildEmptyFilterMessage() {
+        if (categoryFilter == null && statusFilter == null) {
+            return "Hiện chưa có phiên đấu giá nào.";
+        }
+        StringBuilder msg = new StringBuilder("Không có phiên đấu giá");
+        if (categoryFilter != null) {
+            msg.append(" thuộc loại \"").append(categoryLabel(categoryFilter)).append("\"");
+        }
+        if (statusFilter != null) {
+            if (categoryFilter != null) msg.append(" và");
+            msg.append(" ở trạng thái \"").append(statusLabel(statusFilter)).append("\"");
+        }
+        msg.append(".");
+        return msg.toString();
     }
 
 
@@ -358,7 +361,7 @@ public class HomeController {
     private void startListeningForPrices() {
         Thread listenerThread = new Thread(() -> {
             try {
-                radioSocket = new java.net.Socket("10.11.200.251", 9999);
+                radioSocket = new java.net.Socket("localhost", 9999);
                 java.io.PrintWriter out = new java.io.PrintWriter(radioSocket.getOutputStream(), true);
                 java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(radioSocket.getInputStream()));
 
@@ -402,7 +405,6 @@ public class HomeController {
 
     @FXML private ContextMenu userMenu, auctionMenu, sessionMenu;
 
-    // Hàm chung để hiện menu khi di chuột vào Label
     @FXML
     private void handleShowUserMenu(MouseEvent event) {
         Label src = (Label) event.getSource();

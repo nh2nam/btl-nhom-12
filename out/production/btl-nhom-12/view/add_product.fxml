@@ -34,6 +34,7 @@
                                         <MenuItem text="Thông tin cá nhân" />
                                         <MenuItem text="Sản phẩm của bạn" />
                                         <MenuItem text="Lịch sử đấu giá thành công"/>
+                                        <MenuItem text="Đăng xuất" onAction="#logout"/>
                                     </items>
                                 </ContextMenu>
                             </contextMenu>
@@ -76,7 +77,7 @@
 
                 <HBox alignment="CENTER_RIGHT">
                     <children>
-                        <Button mnemonicParsing="false" onMouseClicked="#logout" prefHeight="50.0" prefWidth="150.0" style="-fx-background-color: #CC0000; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18; -fx-background-radius: 5; -fx-cursor: hand; -fx-padding: 17 0 17 0" text="Đăng xuất" />
+                        <Button mnemonicParsing="false" onAction="#goToHome" prefHeight="50.0" prefWidth="150.0" style="-fx-background-color: #CC0000; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 18; -fx-background-radius: 5; -fx-cursor: hand; -fx-padding: 17 0 17 0" text="Quay lại" />
                     </children>
                 </HBox>
             </children>
@@ -98,14 +99,6 @@
 
                                 <Region HBox.hgrow="ALWAYS" />
 
-                                <Button mnemonicParsing="false" onAction="#goToHome" style="-fx-background-color: red; -fx-cursor: hand; -fx-background-radius: 4;" text="QUAY LẠI" textFill="WHITE">
-                                    <padding>
-                                        <Insets bottom="10.0" left="25.0" right="25.0" top="10.0" />
-                                    </padding>
-                                    <font>
-                                        <Font name="System Bold" size="14.0" />
-                                    </font>
-                                </Button>
                             </children>
                         </HBox>
 
