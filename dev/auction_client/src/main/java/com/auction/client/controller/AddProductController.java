@@ -181,13 +181,13 @@ public class AddProductController {
     }
 
     @FXML
-    void goToHome(ActionEvent event) {
+    void goToHome() {
         Main.changeScene("/view/home.fxml");
     }
 
 
     @FXML
-    void logout(ActionEvent event) {
+    void logout() {
         UserSession.getInstance().logout();
         Main.changeScene("/view/login.fxml");
     }

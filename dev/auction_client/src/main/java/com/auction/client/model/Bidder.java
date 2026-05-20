@@ -1,7 +1,5 @@
 package com.auction.client.model;
 
-import com.auction.model.User;
-
 public class Bidder extends User {
     private boolean autoBidEnabled;
     private double maxAutoBidAmount;

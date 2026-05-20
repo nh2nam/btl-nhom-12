@@ -2,7 +2,6 @@ package com.auction.client.controller;
 
 import com.auction.client.Main;
 import com.auction.client.model.AppData;
-import com.auction.client.model.Item;
 import com.auction.client.network.Response;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.session.UserSession;
@@ -47,7 +46,7 @@ public class SellingProductController {
     private final String GREEN_STYLE = "-fx-background-color: #28a745; -fx-text-fill: white; -fx-border-color: black; -fx-font-weight: bold; -fx-font-size: 16px; -fx-background-radius: 10; -fx-border-radius: 10;";
 
     private final Gson gson = new Gson();
-    private Item currentItem;
+    private double currentHighestBid;
     private int  currentAuctionId = -1;
 
     // Scheduler polling lịch sử mỗi 10 giây
@@ -77,13 +76,13 @@ public class SellingProductController {
             String name = String.valueOf(selectedAuction.getOrDefault("name", "Sản phẩm không tên"));
             lblProductName.setText(name);
 
-            Object bidObj = selectedAuction.get("startingPrice");
-            double price = (bidObj instanceof Number) ? ((Number) bidObj).doubleValue() : 0.0;
-            lblCurrentPrice.setText(String.format("%,.0f VNĐ", price));
-
-            Object startingPriceObj = selectedAuction.get("itemStartingPrice");
-            double startingPrice = (startingPriceObj instanceof Number) ? ((Number) startingPriceObj).doubleValue() : price;
+            Object startingPriceObj = selectedAuction.get("startingPrice");
+            double startingPrice = (startingPriceObj instanceof Number) ? ((Number) startingPriceObj).doubleValue() : 0.0;
             lblStartingPrice.setText(String.format("%,.0f VNĐ", startingPrice));
+
+            Object currentBidObj = selectedAuction.get("currentHighestBid");
+            currentHighestBid = (currentBidObj instanceof Number) ? ((Number) currentBidObj).doubleValue() : startingPrice;
+            lblCurrentPrice.setText(String.format("%,.0f VNĐ", currentHighestBid));
 
             String endTime = (String) selectedAuction.getOrDefault("endTime", "");
             lblEndTime.setText(endTime.isEmpty() ? "Không xác định" : endTime);
@@ -112,8 +111,6 @@ public class SellingProductController {
                 }
             }
 
-            this.currentItem = new Item(name, price, path, desc);
-
             Object idObj = selectedAuction.get("id");
             this.currentAuctionId = (idObj instanceof Number) ? ((Number) idObj).intValue() : -1;
 
@@ -131,7 +128,7 @@ public class SellingProductController {
         try {
             double newPrice = Double.parseDouble(txtBidAmount.getText().trim());
 
-            if (newPrice <= currentItem.getPrice()) {
+            if (newPrice <= currentHighestBid) {
                 priceCheck.setText("Giá phải lớn hơn giá hiện tại!");
                 priceCheck.setStyle("-fx-fill: red;");
                 return;
@@ -150,7 +147,7 @@ public class SellingProductController {
             Response response = ServerConnection.getInstance().send("PLACE_BID", data);
 
             if (response.isSuccess()) {
-                currentItem.setPrice(newPrice);
+                currentHighestBid = newPrice;
                 lblCurrentPrice.setText(String.format("%,.0f VNĐ", newPrice));
                 priceCheck.setText("Đặt giá thành công!");
                 priceCheck.setStyle("-fx-fill: green;");
@@ -262,10 +259,10 @@ public class SellingProductController {
             double highestBid = history.stream()
                     .mapToDouble(bid -> ((Number) bid.get("amount")).doubleValue())
                     .max()
-                    .orElse(currentItem != null ? currentItem.getPrice() : 0.0);
+                    .orElse(currentHighestBid);
 
-            if (currentItem != null && highestBid > currentItem.getPrice()) {
-                currentItem.setPrice(highestBid);
+            if (highestBid > currentHighestBid) {
+                currentHighestBid = highestBid;
                 lblCurrentPrice.setText(String.format("%,.0f VNĐ", highestBid));
             }
 

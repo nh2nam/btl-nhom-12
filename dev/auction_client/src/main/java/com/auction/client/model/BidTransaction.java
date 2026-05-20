@@ -1,7 +1,5 @@
 package com.auction.client.model;
 
-import com.auction.model.Entity;
-
 import java.time.LocalDateTime;
 
 public class BidTransaction extends Entity {

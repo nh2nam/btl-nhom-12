@@ -1,9 +1,5 @@
 package com.auction.client.model;
 
-import com.auction.model.BidTransaction;
-import com.auction.model.Bidder;
-import com.auction.model.Entity;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
