@@ -113,15 +113,6 @@
                                    style="-fx-text-fill: #cccccc; -fx-font-size: 16px; -fx-line-spacing: 5px;" />
                         </VBox>
 
-                        <!-- Lịch sử đặt giá -->
-                        <VBox spacing="10.0"
-                              style="-fx-background-color: #2a2a2a; -fx-background-radius: 10; -fx-padding: 25;">
-                            <Label text="Lịch sử đặt giá"
-                                   style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;" />
-                            <Separator style="-fx-background-color: #444;" />
-                            <VBox fx:id="vboxBidHistory" spacing="6.0" />
-                        </VBox>
-
                     </VBox>
 
                     <!-- CỘT PHẢI: Thông tin đấu giá + Đặt giá -->
@@ -173,6 +164,12 @@
                             <Button text="ĐẤU GIÁ TỰ ĐỘNG"
                                     onAction="#handleAutoBid" maxWidth="Infinity" prefHeight="55.0"
                                     style="-fx-background-color: #1976D2; -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;" />
+                            <Button text="LỊCH SỬ ĐẤU GIÁ"
+                                    onAction="#handleShowBidHistory" maxWidth="Infinity" prefHeight="55.0"
+                                    style="-fx-background-color: #37474F; -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;" />
+                            <Button text="BIỂU ĐỒ GIÁ"
+                                    onAction="#handleShowPriceChart" maxWidth="Infinity" prefHeight="55.0"
+                                    style="-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;" />
                         </VBox>
 
                         <VBox VBox.vgrow="ALWAYS" />
