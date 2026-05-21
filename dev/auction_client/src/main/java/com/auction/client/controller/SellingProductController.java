@@ -230,6 +230,272 @@ public class SellingProductController {
     // Lịch sử đặt giá
     // -------------------------------------------------------------------------
 
+    @FXML
+    private void handleShowBidHistory() {
+        if (currentAuctionId == -1) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không xác định được phiên đấu giá!");
+            return;
+        }
+
+        // Tải lịch sử mới nhất trước khi hiện dialog
+        Map<String, Object> data = new HashMap<>();
+        data.put("auctionId", currentAuctionId);
+        Response response = ServerConnection.getInstance().send("GET_BID_HISTORY", data);
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Lịch sử đấu giá");
+        dialog.setHeaderText(null);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        // Style dialog pane tối
+        dialog.getDialogPane().setStyle(
+                "-fx-background-color: #2a2a2a;"
+        );
+
+        VBox container = new VBox(12);
+        container.setStyle("-fx-padding: 20; -fx-background-color: #2a2a2a;");
+        container.setPrefWidth(480);
+
+        Label title = new Label("LỊCH SỬ ĐẤU GIÁ");
+        title.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
+
+        Separator sep = new Separator();
+        sep.setStyle("-fx-background-color: #555;");
+
+        VBox listBox = new VBox(8);
+        listBox.setStyle("-fx-padding: 4 0 0 0;");
+
+        if (!response.isSuccess()) {
+            Label err = new Label("Không thể tải lịch sử đấu giá.");
+            err.setStyle("-fx-text-fill: #ff5252; -fx-font-size: 14px;");
+            listBox.getChildren().add(err);
+        } else {
+            Type listType = new com.google.gson.reflect.TypeToken<List<Map<String, Object>>>(){}.getType();
+            List<Map<String, Object>> history;
+            try {
+                history = gson.fromJson(response.getData(), listType);
+            } catch (Exception e) {
+                history = null;
+            }
+
+            if (history == null || history.isEmpty()) {
+                Label empty = new Label("Chưa có lịch sử đặt giá.");
+                empty.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 14px;");
+                listBox.getChildren().add(empty);
+            } else {
+                for (int i = history.size() - 1; i >= 0; i--) {
+                    Map<String, Object> bid = history.get(i);
+                    double amount     = ((Number) bid.get("amount")).doubleValue();
+                    String bidTime    = String.valueOf(bid.get("bidTime"));
+                    String bidderName = bid.get("bidderName") != null
+                            ? String.valueOf(bid.get("bidderName"))
+                            : "Bidder #" + ((Number) bid.get("bidderId")).intValue();
+
+                    Label row = new Label(String.format("👤 %s   —   %,.0f VNĐ   —   %s", bidderName, amount, bidTime));
+                    row.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 14px; -fx-padding: 6 10; " +
+                            "-fx-background-color: #1e1e1e; -fx-background-radius: 6;");
+                    row.setMaxWidth(Double.MAX_VALUE);
+                    listBox.getChildren().add(row);
+                }
+            }
+        }
+
+        ScrollPane scrollPane = new ScrollPane(listBox);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefHeight(350);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-background: #2a2a2a; -fx-border-color: transparent;");
+
+        container.getChildren().addAll(title, sep, scrollPane);
+        dialog.getDialogPane().setContent(container);
+
+        // Style nút Close
+        dialog.getDialogPane().lookupButton(ButtonType.CLOSE)
+                .setStyle("-fx-background-color: #555; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
+
+        dialog.showAndWait();
+    }
+
+    // -------------------------------------------------------------------------
+    // Biểu đồ giá
+    // -------------------------------------------------------------------------
+
+    @FXML
+    private void handleShowPriceChart() {
+        if (currentAuctionId == -1) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không xác định được phiên đấu giá!");
+            return;
+        }
+
+        // Lấy lịch sử từ server
+        Map<String, Object> req = new HashMap<>();
+        req.put("auctionId", currentAuctionId);
+        Response response = ServerConnection.getInstance().send("GET_BID_HISTORY", req);
+
+        // Parse dữ liệu
+        Type listType = new TypeToken<List<Map<String, Object>>>(){}.getType();
+        List<Map<String, Object>> history = null;
+        if (response.isSuccess()) {
+            try {
+                history = gson.fromJson(response.getData(), listType);
+            } catch (Exception ignored) {}
+        }
+
+        // Trục X: thứ tự lượt đặt, Trục Y: giá
+        javafx.scene.chart.NumberAxis xAxis = new javafx.scene.chart.NumberAxis();
+        javafx.scene.chart.NumberAxis yAxis = new javafx.scene.chart.NumberAxis();
+        xAxis.setLabel("Lượt đặt giá");
+        yAxis.setLabel("Giá (VNĐ)");
+        xAxis.setTickUnit(1);
+        xAxis.setMinorTickVisible(false);
+
+        // Tính giá max để set upper bound có khoảng trống cho label
+        final List<Map<String, Object>> finalHistory = history;
+        double maxPrice = currentHighestBid;
+        if (finalHistory != null && !finalHistory.isEmpty()) {
+            for (Map<String, Object> bid : finalHistory) {
+                double a = ((Number) bid.get("amount")).doubleValue();
+                if (a > maxPrice) maxPrice = a;
+            }
+        }
+
+        // Số điểm dữ liệu
+        int dataCount = (finalHistory != null && !finalHistory.isEmpty()) ? finalHistory.size() : 1;
+
+        // Trục X: thêm 1.5 đơn vị padding bên phải để label điểm cuối không bị khuất
+        xAxis.setAutoRanging(false);
+        xAxis.setLowerBound(0);
+        xAxis.setUpperBound(dataCount + 1.5);
+        xAxis.setTickUnit(Math.max(1, dataCount / 10.0));
+
+        // Trục Y: upper bound = max + 15% để label trên đỉnh không bị cắt
+        yAxis.setAutoRanging(false);
+        yAxis.setLowerBound(0);
+        yAxis.setUpperBound(maxPrice * 1.15);
+        yAxis.setTickUnit(maxPrice * 1.15 / 8);
+
+        javafx.scene.chart.LineChart<Number, Number> lineChart =
+                new javafx.scene.chart.LineChart<>(xAxis, yAxis);
+        lineChart.setTitle("Biến động giá đấu giá");
+        lineChart.setAnimated(false);
+        lineChart.setLegendVisible(false);
+        lineChart.setPrefSize(720, 430);
+        lineChart.setStyle("-fx-background-color: #1e1e1e;");
+
+        javafx.scene.chart.XYChart.Series<Number, Number> series =
+                new javafx.scene.chart.XYChart.Series<>();
+        series.setName("Giá đặt");
+
+        if (finalHistory != null && !finalHistory.isEmpty()) {
+            for (int i = 0; i < finalHistory.size(); i++) {
+                Map<String, Object> bid = finalHistory.get(i);
+                double amount = ((Number) bid.get("amount")).doubleValue();
+
+                // Tạo node tùy chỉnh: chấm xanh + label giá phía trên
+                javafx.scene.layout.StackPane dotWithLabel = makeDotNode(amount);
+
+                javafx.scene.chart.XYChart.Data<Number, Number> dp =
+                        new javafx.scene.chart.XYChart.Data<>(i + 1, amount);
+                dp.setNode(dotWithLabel);
+                series.getData().add(dp);
+            }
+        } else {
+            javafx.scene.layout.StackPane dotWithLabel = makeDotNode(currentHighestBid);
+            javafx.scene.chart.XYChart.Data<Number, Number> dp =
+                    new javafx.scene.chart.XYChart.Data<>(1, currentHighestBid);
+            dp.setNode(dotWithLabel);
+            series.getData().add(dp);
+        }
+
+        lineChart.getData().add(series);
+
+        // CSS cho chart tối
+        lineChart.getStylesheets().add(
+                "data:text/css," +
+                ".chart-plot-background{-fx-background-color:#2a2a2a;}" +
+                ".chart-title{-fx-text-fill:#ffffff;-fx-font-size:15px;-fx-font-weight:bold;}" +
+                ".axis-label{-fx-text-fill:#dddddd;-fx-font-size:12px;}" +
+                ".axis{-fx-tick-label-fill:#cccccc;}" +
+                ".chart-legend{-fx-background-color:#2a2a2a;-fx-alignment:center;}" +
+                ".chart-legend-item{-fx-text-fill:#FFD54F;-fx-font-size:13px;-fx-font-weight:bold;}" +
+                ".default-color0.chart-series-line{-fx-stroke:#4FC3F7;-fx-stroke-width:2.5px;}" +
+                ".default-color0.chart-line-symbol{-fx-background-color:transparent;}" +
+                ".chart-vertical-grid-lines{-fx-stroke:#3a3a3a;}" +
+                ".chart-horizontal-grid-lines{-fx-stroke:#3a3a3a;}"
+        );
+
+        // Bọc chart trong HBox để legend căn giữa toàn bộ chiều ngang
+        javafx.scene.layout.HBox chartWrapper = new javafx.scene.layout.HBox(lineChart);
+        chartWrapper.setAlignment(javafx.geometry.Pos.CENTER);
+        javafx.scene.layout.HBox.setHgrow(lineChart, javafx.scene.layout.Priority.ALWAYS);
+
+        // Dialog
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Biểu đồ giá — " + lblProductName.getText());
+        dialog.setHeaderText(null);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setStyle("-fx-background-color: #1e1e1e;");
+
+        VBox wrapper = new VBox(10);
+        wrapper.setStyle("-fx-padding: 15; -fx-background-color: #1e1e1e;");
+
+        Label titleLbl = new Label("BIỂU ĐỒ GIÁ ĐẤU GIÁ");
+        titleLbl.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
+
+        Separator sep = new Separator();
+        sep.setStyle("-fx-background-color: #555;");
+
+        wrapper.getChildren().addAll(titleLbl, sep, chartWrapper);
+        dialog.getDialogPane().setContent(wrapper);
+
+        dialog.getDialogPane().lookupButton(ButtonType.CLOSE)
+                .setStyle("-fx-background-color: #555; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
+
+        dialog.showAndWait();
+    }
+
+    /**
+     * Tạo node cho một điểm dữ liệu: chấm xanh tròn + label giá vàng phía trên.
+     * Label được đặt trong cùng StackPane với chấm, dịch lên trên bằng translateY.
+     */
+    private javafx.scene.layout.StackPane makeDotNode(double amount) {
+        // Chấm xanh
+        javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(5);
+        dot.setFill(javafx.scene.paint.Color.web("#4FC3F7"));
+        dot.setStroke(javafx.scene.paint.Color.WHITE);
+        dot.setStrokeWidth(1);
+
+        // Label giá
+        String priceText = formatPrice(amount);
+        Label lbl = new Label(priceText);
+        lbl.setStyle(
+                "-fx-text-fill: #FFD54F;" +
+                "-fx-font-size: 9px;" +
+                "-fx-font-weight: bold;" +
+                "-fx-background-color: rgba(0,0,0,0.0);" +
+                "-fx-padding: 0;"
+        );
+        lbl.setMouseTransparent(true);
+        // Dịch label lên trên tâm chấm: bán kính chấm (5) + khoảng cách (3) + nửa chiều cao label (~7) ≈ 20px
+        lbl.setTranslateY(-20);
+
+        javafx.scene.layout.StackPane sp = new javafx.scene.layout.StackPane(dot, lbl);
+        sp.setPickOnBounds(false);
+        return sp;
+    }
+
+    /** Format số tiền gọn */
+    private String formatPrice(double amount) {
+        if (amount >= 1_000_000_000) {
+            return String.format("%.1fB", amount / 1_000_000_000);
+        } else if (amount >= 1_000_000) {
+            return String.format("%.1fM", amount / 1_000_000);
+        } else if (amount >= 1_000) {
+            return String.format("%.1fK", amount / 1_000);
+        } else {
+            return String.format("%,.0f", amount);
+        }
+    }
+
     private void loadBidHistory() {
         if (currentAuctionId == -1) return;
 
