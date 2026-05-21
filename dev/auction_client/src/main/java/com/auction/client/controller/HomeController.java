@@ -7,32 +7,25 @@ import com.auction.client.network.ServerConnection;
 import com.auction.client.session.UserSession;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Side;
-import javafx.util.Duration;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.event.EventHandler;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-import java.io.ByteArrayInputStream;
 import java.lang.reflect.Type;
-import java.util.Base64;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+
+// Đã dọn dẹp các thư viện Base64 và ByteArrayInputStream không còn dùng tới
 
 public class HomeController {
 
@@ -66,44 +59,35 @@ public class HomeController {
             lblUsername.setText(AppData.username);
         }
         loadAuctionsFromServer();
-
         startListeningForPrices();
     }
 
-
-
     private VBox createAuctionItem(Map<String, Object> auction) {
         VBox itemBox = new VBox();
-        // Đặt chiều rộng cố định khoảng 300px để 1 hàng chứa vừa 3 ô
         itemBox.setPrefWidth(300);
         itemBox.setStyle("-fx-background-color: #2a2a2a; -fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-cursor: hand;");
 
-        // --- Xử lý Hình ảnh (Cho nằm trên cùng) ---
+        // --- Xử lý Hình ảnh (Đã nâng cấp dùng Link Cloudinary) ---
         ImageView imgView = new ImageView();
         String imgPath = (String) auction.get("itemImagePath");
         try {
-            if (imgPath != null && !imgPath.trim().isEmpty()) {
-                if (imgPath.length() > 500) {
-                    byte[] imageBytes = Base64.getDecoder().decode(imgPath);
-                    imgView.setImage(new Image(new ByteArrayInputStream(imageBytes)));
-                } else if (imgPath.startsWith("http") || imgPath.startsWith("file:")) {
-                    imgView.setImage(new Image(imgPath));
-                } else {
-                    java.io.InputStream imageStream = getClass().getResourceAsStream(imgPath);
-                    if (imageStream != null) imgView.setImage(new Image(imageStream));
-                }
+            if (imgPath != null && !imgPath.trim().isEmpty() && imgPath.startsWith("http")) {
+                // Tham số 'true' giúp tải ảnh ngầm, không làm đơ giao diện JavaFX
+                imgView.setImage(new Image(imgPath, true));
+            } else {
+                // Tùy chọn: Bạn có thể set một ảnh mặc định (Placeholder) ở đây nếu SP chưa có ảnh
+                // imgView.setImage(new Image(getClass().getResourceAsStream("/images/default.png")));
             }
         } catch (Exception e) {
-            System.err.println("Lỗi giải mã ảnh (Home): " + e.getMessage());
+            System.err.println("Lỗi tải ảnh từ mạng (Home): " + e.getMessage());
         }
-        // Căn chỉnh ảnh to ra choán hết chiều rộng của thẻ
+
         imgView.setFitWidth(300);
         imgView.setFitHeight(180);
-        // Bạn có thể cân nhắc tắt PreserveRatio nếu muốn ảnh lấp đầy khung, hoặc bật nếu sợ méo ảnh
 
-        // --- Xử lý Thông tin chữ (Nằm dưới ảnh) ---
-        VBox infoBox = new VBox(10); // Khoảng cách giữa các dòng chữ
-        infoBox.setStyle("-fx-padding: 15;"); // Lề thụt vào cho phần chữ
+        // --- Xử lý Thông tin chữ ---
+        VBox infoBox = new VBox(10);
+        infoBox.setStyle("-fx-padding: 15;");
 
         int auctionId   = auction.get("id") != null ? ((Number) auction.get("id")).intValue() : 0;
         String itemName = (String) auction.getOrDefault("name", "Sản phẩm #" + auctionId);
@@ -116,7 +100,7 @@ public class HomeController {
 
         Label nameLabel = new Label(itemName);
         nameLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;");
-        nameLabel.setWrapText(true); // Tự động xuống dòng nếu tên quá dài
+        nameLabel.setWrapText(true);
 
         Label descLabel = new Label(desc);
         descLabel.setStyle("-fx-text-fill: #aaa; -fx-font-size: 13px;");
@@ -131,10 +115,8 @@ public class HomeController {
 
         infoBox.getChildren().addAll(nameLabel, descLabel, priceLabel, statusLabel);
 
-        // Ghép ảnh và chữ vào thẻ
         itemBox.getChildren().addAll(imgView, infoBox);
 
-        // Hiệu ứng Hover đổi màu nền xám sáng hơn
         itemBox.setOnMouseEntered(e -> itemBox.setStyle("-fx-background-color: #383838; -fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #555; -fx-cursor: hand;"));
         itemBox.setOnMouseExited(e  -> itemBox.setStyle("-fx-background-color: #2a2a2a; -fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-cursor: hand;"));
 
@@ -224,48 +206,44 @@ public class HomeController {
         }
 
         List<Map<String, Object>> running = filtered.stream()
-                    .filter(a -> "RUNNING".equals(a.get("status")))
-                    .sorted((a, b) -> String.valueOf(b.getOrDefault("endTime", ""))
-                            .compareTo(String.valueOf(a.getOrDefault("endTime", ""))))
+                .filter(a -> "RUNNING".equals(a.get("status")))
+                .sorted((a, b) -> String.valueOf(b.getOrDefault("endTime", ""))
+                        .compareTo(String.valueOf(a.getOrDefault("endTime", ""))))
                 .collect(Collectors.toList());
 
         List<Map<String, Object>> finished = filtered.stream()
-                    .filter(a -> "FINISHED".equals(a.get("status")))
-                    .sorted((a, b) -> String.valueOf(b.getOrDefault("endTime", ""))
-                            .compareTo(String.valueOf(a.getOrDefault("endTime", ""))))
+                .filter(a -> "FINISHED".equals(a.get("status")))
+                .sorted((a, b) -> String.valueOf(b.getOrDefault("endTime", ""))
+                        .compareTo(String.valueOf(a.getOrDefault("endTime", ""))))
                 .collect(Collectors.toList());
 
         if (!running.isEmpty()) {
-                Label runningHeader = new Label("🟢 Đang diễn ra (" + running.size() + ")");
-                // Chỉnh lại cỡ chữ to hơn, màu xanh sáng nổi bật trên nền đen
-                runningHeader.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #4CAF50; -fx-padding: 0 0 20 0;");
-                vboxProducts.getChildren().add(runningHeader);
+            Label runningHeader = new Label("🟢 Đang diễn ra (" + running.size() + ")");
+            runningHeader.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #4CAF50; -fx-padding: 0 0 20 0;");
+            vboxProducts.getChildren().add(runningHeader);
 
-                // SỬ DỤNG FLOWPANE ĐỂ DÀN HÀNG NGANG
-                FlowPane runningFlow = new FlowPane();
-                runningFlow.setHgap(40); // Khoảng cách chiều ngang giữa các thẻ sản phẩm
-                runningFlow.setVgap(40); // Khoảng cách chiều dọc giữa các thẻ sản phẩm
+            FlowPane runningFlow = new FlowPane();
+            runningFlow.setHgap(40);
+            runningFlow.setVgap(40);
 
-                for (Map<String, Object> auction : running) {
-                    runningFlow.getChildren().add(createAuctionItem(auction));
-                }
+            for (Map<String, Object> auction : running) {
+                runningFlow.getChildren().add(createAuctionItem(auction));
+            }
             vboxProducts.getChildren().add(runningFlow);
         }
 
         if (!finished.isEmpty()) {
-                Label finishedHeader = new Label("🔴 Đã kết thúc (" + finished.size() + ")");
-                // Chỉnh lại cỡ chữ to hơn, màu xám sáng
-                finishedHeader.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #aaaaaa; -fx-padding: 40 0 20 0;");
-                vboxProducts.getChildren().add(finishedHeader);
+            Label finishedHeader = new Label("🔴 Đã kết thúc (" + finished.size() + ")");
+            finishedHeader.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #aaaaaa; -fx-padding: 40 0 20 0;");
+            vboxProducts.getChildren().add(finishedHeader);
 
-                // SỬ DỤNG FLOWPANE ĐỂ DÀN HÀNG NGANG
-                FlowPane finishedFlow = new FlowPane();
-                finishedFlow.setHgap(40); // Khoảng cách chiều ngang
-                finishedFlow.setVgap(40); // Khoảng cách chiều dọc
+            FlowPane finishedFlow = new FlowPane();
+            finishedFlow.setHgap(40);
+            finishedFlow.setVgap(40);
 
-                for (Map<String, Object> auction : finished) {
-                    finishedFlow.getChildren().add(createAuctionItem(auction));
-                }
+            for (Map<String, Object> auction : finished) {
+                finishedFlow.getChildren().add(createAuctionItem(auction));
+            }
             vboxProducts.getChildren().add(finishedFlow);
         }
     }
@@ -302,14 +280,11 @@ public class HomeController {
         return msg.toString();
     }
 
-
-
     private void showMyAuctionResults() {
         Map<String, Object> data = new HashMap<>();
         data.put("userId", UserSession.getInstance().getUserId());
         Response response = ServerConnection.getInstance().send("GET_MY_AUCTION_RESULTS", data);
 
-        // Tạo dialog hiển thị kết quả
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Kết quả đấu giá của tôi");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
@@ -358,6 +333,7 @@ public class HomeController {
         dialog.getDialogPane().setContent(sp);
         dialog.showAndWait();
     }
+
     private void startListeningForPrices() {
         Thread listenerThread = new Thread(() -> {
             try {
@@ -375,8 +351,7 @@ public class HomeController {
                         double newPrice = ((Number) data.get("newPrice")).doubleValue();
 
                         Platform.runLater(() -> {
-                            // Cập nhật lại giao diện (cần quét lại các VBox để tìm đúng Label)
-                            loadAuctionsFromServer(); // Tạm thời load lại cho an toàn nếu chưa lưu Map
+                            loadAuctionsFromServer();
                         });
                     }
                 }
