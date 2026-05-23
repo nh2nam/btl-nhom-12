@@ -49,6 +49,7 @@ public class SellingProductController {
     private double currentHighestBid;
     private int  currentAuctionId = -1;
 
+
     // Scheduler polling lịch sử mỗi 10 giây
     private ScheduledExecutorService pollingScheduler;
 
