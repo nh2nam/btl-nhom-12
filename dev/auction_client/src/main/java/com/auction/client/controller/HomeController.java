@@ -32,10 +32,13 @@ public class HomeController {
     @FXML private Label lblUsername;
     @FXML private VBox vboxProducts;
 
+
     private final Gson gson = new Gson();
 
     private java.net.Socket radioSocket;
     private List<Map<String, Object>> allAuctions = new ArrayList<>();
+    private Map<String, Image> imageCache = new HashMap<>();
+
     private String categoryFilter;
     private String statusFilter;
 
@@ -72,11 +75,19 @@ public class HomeController {
         String imgPath = (String) auction.get("itemImagePath");
         try {
             if (imgPath != null && !imgPath.trim().isEmpty() && imgPath.startsWith("http")) {
-                // Tham số 'true' giúp tải ảnh ngầm, không làm đơ giao diện JavaFX
-                imgView.setImage(new Image(imgPath, true));
+                // Kiểm tra xem ảnh này đã từng được tải về và cất trong kho chưa?
+                if (imageCache.containsKey(imgPath)) {
+                    // Nếu có rồi, lôi từ kho ra dùng luôn, không cần mạng!
+                    imgView.setImage(imageCache.get(imgPath));
+                } else {
+                    // Nếu chưa có, tiến hành tải ngầm từ mạng về...
+                    Image newImage = new Image(imgPath, true);
+                    // ...và cất ngay vào kho để lần sau dùng lại
+                    imageCache.put(imgPath, newImage);
+                    imgView.setImage(newImage);
+                }
             } else {
-                // Tùy chọn: Bạn có thể set một ảnh mặc định (Placeholder) ở đây nếu SP chưa có ảnh
-                // imgView.setImage(new Image(getClass().getResourceAsStream("/images/default.png")));
+                // Tùy chọn ảnh mặc định
             }
         } catch (Exception e) {
             System.err.println("Lỗi tải ảnh từ mạng (Home): " + e.getMessage());

@@ -8,11 +8,14 @@ import com.auction.util.AuctionManager;
 import com.auction.exception.AuctionException;
 import com.auction.exception.BidTooLowException;
 import java.time.LocalDateTime;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class AuctionServiceImpl implements IAuctionService {
 
     private AuctionManager auctionManager = AuctionManager.getInstance();
     private BidTransactionDAO bidTransactionDAO = new BidTransactionDAO();
+    private ExecutorService eventQueue = Executors.newCachedThreadPool();
 
     @Override
     public void placeManualBid(int auctionId, int bidderId, double bidAmount) throws AuctionException {
@@ -63,21 +66,21 @@ public class AuctionServiceImpl implements IAuctionService {
             System.out.println("✅ " + (isAutoBid ? "[BOT] " : "[USER] ") + bidderId + " đặt giá: " + bidAmount + "$");
 
             com.auction.network.BroadcastManager.broadcastPriceUpdate(auctionId, bidAmount);
+            notifyAutoBidObservers(auction);
             // 6. CHỐT CHẶN ĐỆ QUY:
             // Chỉ kích hoạt Auto-Bidding nếu người vừa đặt giá là NGƯỜI THẬT.
             // Nếu là Bot vừa đặt, ta dừng lại tại đây để tránh vòng lặp Bot A gọi Bot B gọi lại Bot A.
             if (!isAutoBid) {
-                triggerAutoBidding(auction);
+                notifyAutoBidObservers(auction);
             }
         }
     }
 
+
     @Override
     public boolean registerAutoBid(int auctionId, int bidderId, double maxBidAmount, double increment) {
         Auction auction = auctionManager.getAuction(auctionId);
-        if (auction == null || !auction.isOpen()) {
-            return false;
-        }
+        if (auction == null || !auction.isOpen()) return false;
 
         Bidder autoBidder = new Bidder(bidderId, "User_" + bidderId, "user@gmail.com", "hash");
         autoBidder.setAutoBidEnabled(true);
@@ -86,37 +89,49 @@ public class AuctionServiceImpl implements IAuctionService {
 
         synchronized (auction) {
             auction.getAutoBidders().add(autoBidder);
-            System.out.println("🤖 Bidder " + bidderId + " đã bật Auto-Bid (Max: " + maxBidAmount + ", Bước giá: " + increment + ")");
-            triggerAutoBidding(auction);
+            System.out.println("🤖 Bidder " + bidderId + " đã đăng ký Lắng nghe sự kiện (Observer)");
+
+            // Kích hoạt nhịp đầu tiên để Bot rà soát giá hiện tại
+            notifyAutoBidObservers(auction);
         }
         return true;
     }
 
-    private void triggerAutoBidding(Auction auction) {
-        boolean autoBidOccurred;
-        do {
-            autoBidOccurred = false;
-            for (Bidder bidder : auction.getAutoBidders()) {
-                // Không tự đấu giá với chính mình
-                if (bidder.getId() == auction.getCurrentWinnerId()) continue;
+    // ĐÂY LÀ OBSERVER LISTENER: Nơi các Bot lắng nghe và phản ứng
+    private void notifyAutoBidObservers(Auction auction) {
+        // Tống công việc phản ứng của Bot vào hàng đợi thay vì chạy trực tiếp
+        eventQueue.submit(() -> {
+            try {
+                // Nhịp thở 1.5 giây để Client kịp vẽ UI và người thật có kẽ hở đặt giá
+                Thread.sleep(1500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
 
-                double nextRequiredBid = auction.getCurrentHighestBid() + bidder.getAutoBidIncrement();
+            synchronized (auction) {
+                if (!auction.isOpen()) return;
 
-                // Nếu Bot vẫn còn đủ ngân sách
-                if (nextRequiredBid <= bidder.getMaxAutoBidAmount()) {
-                    try {
-                        // GỌI HÀM LÕI VỚI CỜ isAutoBid = true
-                        processBid(auction.getId(), bidder.getId(), nextRequiredBid, true);
-                        autoBidOccurred = true;
-                        break; // Thoát vòng lặp nhỏ để quét lại danh sách Bot từ đầu với giá mới
-                    } catch (AuctionException e) {
-                        System.out.println("⚠️ Auto-Bid cho Bidder " + bidder.getId() + " thất bại: " + e.getMessage());
+                for (Bidder bot : auction.getAutoBidders()) {
+                    // Không tự đấu giá với chính mình
+                    if (bot.getId() == auction.getCurrentWinnerId()) continue;
+
+                    double nextRequiredBid = auction.getCurrentHighestBid() + bot.getAutoBidIncrement();
+
+                    // Nếu ngân sách vẫn đủ
+                    if (nextRequiredBid <= bot.getMaxAutoBidAmount()) {
+                        try {
+                            // Khi Bot này đặt giá, nó sẽ tự động gọi processBid
+                            // và processBid sẽ lại phát ra tín hiệu mới để duy trì chuỗi sự kiện!
+                            processBid(auction.getId(), bot.getId(), nextRequiredBid, true);
+                            break; // Dừng lại! Nhường quyền kích hoạt sự kiện tiếp theo cho processBid
+                        } catch (AuctionException e) {
+                            System.out.println("⚠️ Lỗi Bot " + bot.getId() + ": " + e.getMessage());
+                        }
                     }
                 }
             }
-        } while (autoBidOccurred);
+        });
     }
-
     @Override
     public void processExpiredAuctions() {
         LocalDateTime now = LocalDateTime.now();
