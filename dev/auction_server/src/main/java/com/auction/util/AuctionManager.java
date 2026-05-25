@@ -70,12 +70,15 @@ public class AuctionManager {
                 // Nếu đây là phiên đấu giá mới tinh (vừa đăng bán), thì đưa vào RAM
                 activeAuctions.put(dbAuction.getId(), dbAuction);
             } else {
-                // NẾU ĐÃ CÓ TRONG RAM: Chỉ cập nhật các con số, KHÔNG ĐƯỢC GHI ĐÈ OBJECT
-                // Nhờ vậy, danh sách autoBidders và bidHistory trong RAM không bị mất đi
-                ramAuction.setCurrentHighestBid(dbAuction.getCurrentHighestBid());
-                ramAuction.setCurrentWinnerId(dbAuction.getCurrentWinnerId());
-                ramAuction.setStatus(dbAuction.getStatus());
-                ramAuction.setEndTime(dbAuction.getEndTime()); // Cập nhật thời gian nếu Anti-sniping có gia hạn
+                synchronized (ramAuction) {
+                    if (dbAuction.getVersion() > ramAuction.getVersion()) {
+                        ramAuction.setCurrentHighestBid(dbAuction.getCurrentHighestBid());
+                        ramAuction.setCurrentWinnerId(dbAuction.getCurrentWinnerId());
+                        ramAuction.setStatus(dbAuction.getStatus());
+                        ramAuction.setEndTime(dbAuction.getEndTime());
+                        ramAuction.setVersion(dbAuction.getVersion());
+                    }
+                }
             }
         }
     }

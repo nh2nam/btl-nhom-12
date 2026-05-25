@@ -49,6 +49,7 @@ public class SellingProductController {
     private double currentHighestBid;
     private int  currentAuctionId = -1;
 
+
     // Scheduler polling lịch sử mỗi 10 giây
     private ScheduledExecutorService pollingScheduler;
 
@@ -94,21 +95,17 @@ public class SellingProductController {
             description.setText(desc);
             lblProductInfo.setText("📌 Phân loại: " + category + "\n\n📝 Mô tả: " + desc);
 
+            // --- XỬ LÝ ẢNH MỚI (CLOUDINARY LINK) ---
             String path = (String) selectedAuction.get("itemImagePath");
-            if (path != null && !path.trim().isEmpty()) {
-                try {
-                    if (path.length() > 500) {
-                        byte[] imageBytes = Base64.getDecoder().decode(path);
-                        imgProduct.setImage(new Image(new ByteArrayInputStream(imageBytes)));
-                    } else if (path.startsWith("http") || path.startsWith("file:")) {
-                        imgProduct.setImage(new Image(path));
-                    } else {
-                        java.io.InputStream is = getClass().getResourceAsStream(path);
-                        if (is != null) imgProduct.setImage(new Image(is));
-                    }
-                } catch (Exception e) {
-                    System.err.println("Lỗi giải mã ảnh: " + e.getMessage());
+            try {
+                if (path != null && !path.trim().isEmpty() && path.startsWith("http")) {
+                    // Cờ 'true' giúp tải ảnh ngầm, không làm đơ giao diện khi vào xem chi tiết
+                    imgProduct.setImage(new Image(path, true));
+                } else {
+                    // Tùy chọn: Set ảnh mặc định nếu sản phẩm không có link hợp lệ
                 }
+            } catch (Exception e) {
+                System.err.println("Lỗi tải ảnh từ mạng (Selling): " + e.getMessage());
             }
 
             Object idObj = selectedAuction.get("id");

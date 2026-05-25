@@ -5,6 +5,8 @@ import com.auction.client.model.AppData;
 import com.auction.client.network.Response;
 import com.auction.client.network.ServerConnection;
 import com.auction.client.session.UserSession;
+import com.auction.client.network.CloudinaryUtil;
+
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Side;
@@ -12,11 +14,11 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import java.nio.file.Files;
-import java.util.Base64;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+
 
 public class AddProductController {
     @FXML private ComboBox<String> cbCategory;
@@ -107,25 +109,31 @@ public class AddProductController {
             return;
         }
 
+        // --- ĐOẠN CODE XỬ LÝ ẢNH MỚI (CLOUDINARY) ---
+        String imgPath = "";
+        if (selectedImageFile != null) {
+            showErrorMessage("Đang tải ảnh lên Cloud, vui lòng đợi..."); // Báo hiệu cho User
+
+            // Đẩy thẳng file ảnh lên Cloudinary và lấy đường link về
+            String uploadedUrl = CloudinaryUtil.uploadImage(selectedImageFile);
+
+            if (uploadedUrl != null && !uploadedUrl.isEmpty()) {
+                imgPath = uploadedUrl; // Gắn Link ảnh vào gói dữ liệu
+            } else {
+                showErrorMessage("Lỗi tải ảnh lên Cloud! Vui lòng thử lại.");
+                return; // Dừng việc gửi lên Server nếu tải ảnh hỏng
+            }
+        }
+
         // Đóng gói dữ liệu gửi lên Server
         Map<String, Object> data = new HashMap<>();
         data.put("name", name);
         data.put("description", desc);
         data.put("startingPrice", price);
-        String category = cbCategory.getValue(); // Lấy giá trị người dùng đã chọn
-        data.put("category", category); // Đút vào gói dữ liệu gửi đi
+        String category = cbCategory.getValue();
+        data.put("category", category);
 
-        String imgPath = "";
-        if (selectedImageFile != null) {
-            try {
-                // Đọc file ảnh thành mảng byte
-                byte[] fileContent = Files.readAllBytes(selectedImageFile.toPath());
-                // Mã hóa thành chuỗi Base64
-                imgPath = Base64.getEncoder().encodeToString(fileContent);
-            } catch (Exception e) {
-                System.err.println("Lỗi mã hóa ảnh: " + e.getMessage());
-            }
-        }
+        // Gửi Link URL vừa lấy được từ Cloudinary (Thay vì Base64)
         data.put("imagePath", imgPath);
 
         // Gửi kèm thời gian đấu giá (đơn vị: phút)
@@ -184,7 +192,6 @@ public class AddProductController {
     void goToHome() {
         Main.changeScene("/view/home.fxml");
     }
-
 
     @FXML
     void logout() {
