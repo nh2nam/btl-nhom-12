@@ -68,6 +68,12 @@ public class ClientHandler implements Runnable {
                     responseMap = handleRegisterAutoBid(payload);
                 } else if ("GET_MY_AUCTION_RESULTS".equals(action)) {
                     responseMap = handleGetMyAuctionResults(payload);
+                } else if ("GET_MY_PRODUCTS".equals(action)) {
+                    responseMap = handleGetMyProducts(payload);
+                } else if ("UPDATE_PHONE".equals(action)) {
+                    responseMap = handleUpdatePhone(payload);
+                } else if ("UPDATE_EMAIL".equals(action)) {
+                    responseMap = handleUpdateEmail(payload);
                 } else if ("SUBSCRIBE_PRICE".equals(action)) {
                     System.out.println("🎧 Một Client vừa đăng ký nghe Đài phát thanh giá!");
                     BroadcastManager.addObserver(out);
@@ -103,10 +109,12 @@ public class ClientHandler implements Runnable {
         Map<String, Object> response = new HashMap<>();
         try {
             Map<String, String> userData = gson.fromJson(gson.toJson(payload), new TypeToken<Map<String, String>>(){}.getType());
-            String username = userData.get("username");
-            String email = userData.get("account_name");
-            String password = userData.get("password");
-            String role = userData.get("role");
+            String username    = userData.get("username");       // tên đăng nhập
+            String email       = userData.getOrDefault("email", userData.getOrDefault("account_name", "")); // email thật
+            String displayName = userData.getOrDefault("account_name", username); // họ tên hiển thị
+            String password    = userData.get("password");
+            String role        = userData.get("role");
+            String phone       = userData.getOrDefault("phone", "");
 
             boolean isDuplicate = UserManager.getInstance().getAllUsers().stream()
                     .anyMatch(u -> u.getUsername().equalsIgnoreCase(username));
@@ -115,14 +123,15 @@ public class ClientHandler implements Runnable {
                 response.put("success", false);
                 response.put("message", "Tên đăng nhập '" + username + "' đã tồn tại!");
             } else {
-                User newUser;
-                // Hash mật khẩu trước khi lưu
                 String hashedPassword = PasswordUtil.hash(password);
+                User newUser;
                 if ("SELLER".equals(role)) {
                     newUser = new Seller(0, username, email, hashedPassword);
                 } else {
                     newUser = new Bidder(0, username, email, hashedPassword);
                 }
+                newUser.setDisplayName(displayName);
+                newUser.setPhone(phone);
                 UserManager.getInstance().addUser(newUser);
                 response.put("success", true);
                 response.put("message", "Đăng ký tài khoản thành công!");
@@ -152,9 +161,11 @@ public class ClientHandler implements Runnable {
 
             if (matchedUser != null) {
                 Map<String, Object> userInfo = new HashMap<>();
-                userInfo.put("id", matchedUser.getId());
-                userInfo.put("username", matchedUser.getUsername());
-                userInfo.put("displayName", matchedUser.getEmail()); // tên người dùng (account_name)
+                userInfo.put("id",          matchedUser.getId());
+                userInfo.put("username",    matchedUser.getUsername());
+                userInfo.put("displayName", matchedUser.getDisplayName()); // họ tên hiển thị
+                userInfo.put("email",       matchedUser.getEmail());        // email thật
+                userInfo.put("phone",       matchedUser.getPhone() != null ? matchedUser.getPhone() : "");
 
                 if (matchedUser instanceof Seller) userInfo.put("role", "SELLER");
                 else if (matchedUser instanceof Admin) userInfo.put("role", "ADMIN");
@@ -413,6 +424,128 @@ public class ClientHandler implements Runnable {
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "Lỗi server khi tải kết quả: " + e.getMessage());
+        }
+        return response;
+    }
+
+    /**
+     * Trả về sản phẩm của user: đang bán, đang bid, đã bán, đã bid.
+     */
+    private Map<String, Object> handleGetMyProducts(Object payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Map<String, Object> data = gson.fromJson(
+                    gson.toJson(payload), new TypeToken<Map<String, Object>>(){}.getType());
+            int userId = ((Number) data.get("userId")).intValue();
+
+            List<Map<String, Object>> selling   = new ArrayList<>(); // đang bán (RUNNING)
+            List<Map<String, Object>> bidding   = new ArrayList<>(); // đang bid (RUNNING)
+            List<Map<String, Object>> soldDone  = new ArrayList<>(); // đã bán (FINISHED)
+            List<Map<String, Object>> bidDone   = new ArrayList<>(); // đã bid (FINISHED)
+
+            for (Auction auction : AuctionManager.getInstance().getAllAuctions()) {
+                Item item = ItemManager.getInstance().getItem(auction.getItemId());
+                if (item == null) continue;
+
+                boolean isSeller = auction.getSellerId() == userId;
+                boolean hasBid   = auction.getBidHistory().stream()
+                        .anyMatch(b -> b.getBidderId() == userId);
+                boolean isRunning  = "RUNNING".equals(auction.getStatus());
+                boolean isFinished = "FINISHED".equals(auction.getStatus());
+
+                if (!isSeller && !hasBid) continue;
+
+                Map<String, Object> map = new HashMap<>();
+                map.put("auctionId",        auction.getId());
+                map.put("itemName",         item.getName());
+                map.put("itemImagePath",    item.getImagePath());
+                map.put("currentHighestBid", auction.getCurrentHighestBid());
+                map.put("startingPrice",    item.getStartingPrice());
+                map.put("status",           auction.getStatus());
+                map.put("isWinner",         auction.getCurrentWinnerId() == userId);
+                String endTime = auction.getEndTime().toString().replace("T", " ");
+                if (endTime.contains(".")) endTime = endTime.substring(0, endTime.indexOf("."));
+                map.put("endTime", endTime);
+
+                if (isSeller && isRunning)  selling.add(map);
+                if (isSeller && isFinished) soldDone.add(map);
+                if (!isSeller && hasBid && isRunning)  bidding.add(map);
+                if (!isSeller && hasBid && isFinished) bidDone.add(map);
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("selling",  selling);
+            result.put("bidding",  bidding);
+            result.put("soldDone", soldDone);
+            result.put("bidDone",  bidDone);
+
+            response.put("success", true);
+            response.put("message", "Tải sản phẩm thành công!");
+            response.put("data", result);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Lỗi server khi tải sản phẩm: " + e.getMessage());
+        }
+        return response;
+    }
+
+    /** Cập nhật số điện thoại cho user */
+    private Map<String, Object> handleUpdatePhone(Object payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Map<String, Object> data = gson.fromJson(
+                    gson.toJson(payload), new TypeToken<Map<String, Object>>(){}.getType());
+            int    userId = ((Number) data.get("userId")).intValue();
+            String phone  = (String) data.get("phone");
+
+            if (phone == null || phone.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Số điện thoại không được để trống!");
+                return response;
+            }
+
+            boolean ok = UserManager.getInstance().updatePhone(userId, phone.trim());
+            if (ok) {
+                response.put("success", true);
+                response.put("message", "Cập nhật số điện thoại thành công!");
+            } else {
+                response.put("success", false);
+                response.put("message", "Không tìm thấy tài khoản!");
+            }
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Lỗi server: " + e.getMessage());
+        }
+        return response;
+    }
+
+    /** Cập nhật email cho user */
+    private Map<String, Object> handleUpdateEmail(Object payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Map<String, Object> data = gson.fromJson(
+                    gson.toJson(payload), new TypeToken<Map<String, Object>>(){}.getType());
+            int    userId = ((Number) data.get("userId")).intValue();
+            String email  = (String) data.get("email");
+
+            if (email == null || email.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Email không được để trống!");
+                return response;
+            }
+
+            boolean ok = UserManager.getInstance().updateEmail(userId, email.trim());
+            if (ok) {
+                response.put("success", true);
+                response.put("message", "Cập nhật email thành công!");
+            } else {
+                response.put("success", false);
+                response.put("message", "Không tìm thấy tài khoản!");
+            }
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Lỗi server: " + e.getMessage());
         }
         return response;
     }

@@ -44,10 +44,41 @@ public class DatabaseConnection {
                 Class.forName("com.mysql.cj.jdbc.Driver");
                 connection = DriverManager.getConnection(URL, USER, DB_SECRET);
                 LOGGER.info("🔗 Đã kết nối tới Database thành công!");
+                ensurePhoneColumn(connection);
             }
         } catch (SQLException | ClassNotFoundException e) {
             throw new IllegalStateException("Không thể kết nối DB, dừng hệ thống.", e);
         }
         return connection;
+    }
+
+    /**
+     * Tự động thêm cột phone vào bảng users nếu chưa có.
+     */
+    private static void ensurePhoneColumn(Connection conn) {
+        try (java.sql.ResultSet rs = conn.getMetaData().getColumns(null, null, "users", "phone")) {
+            if (!rs.next()) {
+                try (java.sql.Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate("ALTER TABLE users ADD COLUMN phone VARCHAR(20) DEFAULT ''");
+                    LOGGER.info("✅ Đã thêm cột 'phone' vào bảng users.");
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.warning("⚠️ Không thể kiểm tra/thêm cột phone: " + e.getMessage());
+        }
+
+        // Thêm cột display_name (họ tên hiển thị) nếu chưa có
+        try (java.sql.ResultSet rs = conn.getMetaData().getColumns(null, null, "users", "display_name")) {
+            if (!rs.next()) {
+                try (java.sql.Statement stmt = conn.createStatement()) {
+                    // Khởi tạo display_name = account_name cho user cũ (account_name đang chứa họ tên)
+                    stmt.executeUpdate("ALTER TABLE users ADD COLUMN display_name VARCHAR(255) DEFAULT ''");
+                    stmt.executeUpdate("UPDATE users SET display_name = account_name WHERE display_name = '' OR display_name IS NULL");
+                    LOGGER.info("✅ Đã thêm cột 'display_name' và migrate dữ liệu từ account_name.");
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.warning("⚠️ Không thể kiểm tra/thêm cột display_name: " + e.getMessage());
+        }
     }
 }

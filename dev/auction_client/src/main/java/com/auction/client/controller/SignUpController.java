@@ -29,13 +29,13 @@ public class SignUpController {
             return;
         }
 
-        String username    = txtUser.getText().trim();
-        String accountName = txtAccountName.getText().trim();
+        String username    = txtUser.getText().trim();       // Tên người dùng (họ tên)
+        String accountName = txtAccountName.getText().trim(); // Tên đăng nhập
         String password    = txtPass.getText().trim();
-        String address     = txtAddress.getText().trim();
+        String email       = txtAddress.getText().trim();     // Email thật
         String phone       = txtPhone.getText().trim();
 
-        if (username.isEmpty() || address.isEmpty() || phone.isEmpty()
+        if (username.isEmpty() || email.isEmpty() || phone.isEmpty()
                 || accountName.isEmpty() || password.isEmpty()) {
             lblMessage.setTextFill(Color.RED);
             lblMessage.setText("Nhập thiếu thông tin!");
@@ -55,10 +55,12 @@ public class SignUpController {
         }
 
         Map<String, Object> data = new HashMap<>();
-        data.put("username", accountName);
-        data.put("account_name",    username );
-        data.put("password", password);
-        data.put("role",     "BIDDER"); // Tất cả tài khoản đều có quyền mua và bán
+        data.put("username",     accountName); // tên đăng nhập
+        data.put("account_name", username);    // họ tên hiển thị → server đọc làm displayName
+        data.put("email",        email);       // email thật
+        data.put("password",     password);
+        data.put("phone",        phone);
+        data.put("role",         "BIDDER");
 
         Response response = ServerConnection.getInstance().send("REGISTER", data);
 
