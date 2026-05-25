@@ -63,4 +63,24 @@ public class UserManager {
     public java.util.Collection<User> getAllUsers() {
         return users.values();
     }
+
+    // Cập nhật số điện thoại — lưu cả DB lẫn RAM
+    public boolean updatePhone(int userId, String phone) {
+        boolean ok = userDAO.updatePhone(userId, phone);
+        if (ok) {
+            User u = users.get(userId);
+            if (u != null) u.setPhone(phone);
+        }
+        return ok;
+    }
+
+    // Cập nhật email — lưu cả DB lẫn RAM
+    public boolean updateEmail(int userId, String email) {
+        boolean ok = userDAO.updateEmail(userId, email);
+        if (ok) {
+            User u = users.get(userId);
+            if (u != null) u.setEmail(email);
+        }
+        return ok;
+    }
 }

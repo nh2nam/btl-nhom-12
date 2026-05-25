@@ -3,11 +3,12 @@ package com.auction.client.session;
 public class UserSession {
     private static UserSession instance;
 
-    // Các thông tin cơ bản cần lưu khi User đăng nhập
     private int userId;
     private String username;
     private String displayName;
     private String role;
+    private String email;
+    private String phone;
 
     private UserSession() {}
 
@@ -31,6 +32,12 @@ public class UserSession {
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
 
+    public String getEmail() { return email != null ? email : ""; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPhone() { return phone != null ? phone : ""; }
+    public void setPhone(String phone) { this.phone = phone; }
+
     public void login(int id, String username, String displayName, String role) {
         this.userId = id;
         this.username = username;
@@ -38,17 +45,16 @@ public class UserSession {
         this.role = role;
     }
 
-    // Hàm kiểm tra trạng thái đăng nhập
     public boolean isLoggedIn() {
-        // Nếu username khác null nghĩa là người dùng đã đăng nhập thành công
         return this.username != null && !this.username.isEmpty();
     }
 
-    // Hàm dùng để xóa dữ liệu khi người dùng bấm Đăng xuất
     public void logout() {
         this.userId = 0;
         this.username = null;
         this.displayName = null;
         this.role = null;
+        this.email = null;
+        this.phone = null;
     }
 }

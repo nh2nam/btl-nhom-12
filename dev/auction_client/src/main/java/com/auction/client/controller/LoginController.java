@@ -50,6 +50,8 @@ public class LoginController {
                         (String) userInfo.getOrDefault("displayName", userInfo.get("username")),
                         (String) userInfo.get("role")
                 );
+                UserSession.getInstance().setEmail((String) userInfo.getOrDefault("email", ""));
+                UserSession.getInstance().setPhone((String) userInfo.getOrDefault("phone", ""));
             }
             currentUserId = UserSession.getInstance().getUserId();
             Main.changeScene("/view/home.fxml");

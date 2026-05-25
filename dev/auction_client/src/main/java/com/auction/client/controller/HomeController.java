@@ -18,12 +18,12 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.lang.reflect.Type;
 
 // Đã dọn dẹp các thư viện Base64 và ByteArrayInputStream không còn dùng tới
 
@@ -172,7 +172,12 @@ public class HomeController {
     @FXML
     private void filterByCategory(ActionEvent event) {
         MenuItem item = (MenuItem) event.getSource();
-        categoryFilter = MENU_TO_CATEGORY.get(item.getText());
+        String menuText = item.getText();
+        if ("Tất cả danh mục".equals(menuText)) {
+            categoryFilter = null;
+        } else {
+            categoryFilter = MENU_TO_CATEGORY.get(menuText);
+        }
         auctionMenu.hide();
         renderAuctionList();
     }
@@ -292,63 +297,13 @@ public class HomeController {
     }
 
     private void showMyAuctionResults() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("userId", UserSession.getInstance().getUserId());
-        Response response = ServerConnection.getInstance().send("GET_MY_AUCTION_RESULTS", data);
-
-        Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("Kết quả đấu giá của tôi");
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(500);
-
-        VBox content = new VBox(10);
-        content.setStyle("-fx-padding: 15;");
-
-        if (!response.isSuccess()) {
-            content.getChildren().add(new Label("Không thể tải kết quả: " + response.getMessage()));
-        } else {
-            Type listType = new TypeToken<List<Map<String, Object>>>(){}.getType();
-            List<Map<String, Object>> results;
-            try {
-                results = gson.fromJson(response.getData(), listType);
-            } catch (Exception e) {
-                results = null;
-            }
-
-            if (results == null || results.isEmpty()) {
-                content.getChildren().add(new Label("Bạn chưa tham gia phiên đấu giá nào đã kết thúc."));
-            } else {
-                for (Map<String, Object> r : results) {
-                    String itemName   = String.valueOf(r.getOrDefault("itemName", "?"));
-                    double finalPrice = ((Number) r.get("finalPrice")).doubleValue();
-                    boolean isWinner  = Boolean.TRUE.equals(r.get("isWinner"));
-                    boolean isSeller  = Boolean.TRUE.equals(r.get("isSeller"));
-                    String endTime    = String.valueOf(r.getOrDefault("endTime", ""));
-
-                    String role   = isSeller ? "Người bán" : (isWinner ? "🏆 Người thắng" : "Người tham gia");
-                    String color  = isWinner ? "#28a745" : (isSeller ? "#2196F3" : "#888");
-
-                    Label lbl = new Label(String.format("%s  |  %s  |  Giá cuối: %,.0fVND  |  %s",
-                            role, itemName, finalPrice, endTime));
-                    lbl.setStyle("-fx-font-size: 13px; -fx-padding: 8; -fx-background-color: #f9f9f9; "
-                            + "-fx-background-radius: 5; -fx-text-fill: " + color + ";");
-                    lbl.setWrapText(true);
-                    content.getChildren().add(lbl);
-                }
-            }
-        }
-
-        javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(content);
-        sp.setFitToWidth(true);
-        sp.setPrefHeight(400);
-        dialog.getDialogPane().setContent(sp);
-        dialog.showAndWait();
+        // Đã được thay thế bởi màn hình "Sản phẩm của bạn"
     }
 
     private void startListeningForPrices() {
         Thread listenerThread = new Thread(() -> {
             try {
-                radioSocket = new java.net.Socket("10.11.5.168", 9999);
+                radioSocket = new java.net.Socket("localhost", 9999);
                 java.io.PrintWriter out = new java.io.PrintWriter(radioSocket.getOutputStream(), true);
                 java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(radioSocket.getInputStream()));
 
@@ -410,9 +365,15 @@ public class HomeController {
     }
 
     @FXML
-    private void goToMyResults() {
+    private void goToProfile() {
         stopListening();
-        showMyAuctionResults();
+        Main.changeScene("/view/profile.fxml");
+    }
+
+    @FXML
+    private void goToMyProducts() {
+        stopListening();
+        Main.changeScene("/view/my_products.fxml");
     }
 
     @FXML
