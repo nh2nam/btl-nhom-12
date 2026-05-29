@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox prefHeight="800.0" prefWidth="1280.0"
+      xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.auction.client.controller.ProfileController"
+      style="-fx-background-color: #111111;">
+
+    <!-- NAVBAR -->
+    <HBox alignment="CENTER_LEFT" prefHeight="80.0"
+          style="-fx-background-color: black; -fx-border-color: #333333; -fx-border-width: 0 0 1 0; -fx-padding: 0 40 0 40;">
+        <Label text="← Quay lại" onMouseClicked="#goBack"
+               style="-fx-text-fill: #aaaaaa; -fx-font-size: 16px; -fx-cursor: hand;"/>
+        <Label text="Thông tin cá nhân" HBox.hgrow="ALWAYS"
+               style="-fx-text-fill: white; -fx-font-size: 22px; -fx-font-weight: bold; -fx-padding: 0 0 0 40;"/>
+    </HBox>
+
+    <!-- NỘI DUNG -->
+    <VBox alignment="CENTER" VBox.vgrow="ALWAYS">
+        <VBox maxWidth="600.0" spacing="0"
+              style="-fx-background-color: #1e1e1e; -fx-background-radius: 12; -fx-border-radius: 12; -fx-border-color: #333; -fx-border-width: 1;">
+
+            <!-- Avatar header -->
+            <VBox alignment="CENTER"
+                  style="-fx-background-color: #CC0000; -fx-background-radius: 12 12 0 0; -fx-padding: 36 0 36 0;">
+                <Label text="👤" style="-fx-font-size: 64px;"/>
+            </VBox>
+
+            <!-- Họ và tên -->
+            <HBox style="-fx-padding: 22 32 22 32; -fx-border-color: #2a2a2a; -fx-border-width: 0 0 1 0;">
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="Họ và tên" style="-fx-text-fill: #888888; -fx-font-size: 13px;"/>
+                    <Label fx:id="lblDisplayName" text="—"
+                           style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;"/>
+                </VBox>
+            </HBox>
+
+            <!-- Gmail (có thể chỉnh sửa) -->
+            <HBox alignment="CENTER_LEFT"
+                  style="-fx-padding: 22 32 22 32; -fx-border-color: #2a2a2a; -fx-border-width: 0 0 1 0;">
+                <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label text="Gmail" style="-fx-text-fill: #888888; -fx-font-size: 13px;"/>
+                    <Label fx:id="lblEmail" text="—"
+                           style="-fx-text-fill: white; -fx-font-size: 18px;"/>
+                    <TextField fx:id="txtEmail" promptText="Nhập địa chỉ email"
+                               style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-background-radius: 6; -fx-border-color: #555; -fx-border-radius: 6; -fx-padding: 8 12 8 12;"
+                               visible="false" managed="false"/>
+                    <Label fx:id="lblEmailMsg" text="" style="-fx-font-size: 13px;"/>
+                    <HBox fx:id="hboxEmailButtons" spacing="10" visible="false" managed="false">
+                        <Button text="Lưu" onAction="#handleSaveEmail"
+                                style="-fx-background-color: #CC0000; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 20 6 20;"/>
+                        <Button text="Hủy" onAction="#handleCancelEmail"
+                                style="-fx-background-color: #444; -fx-text-fill: white; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 20 6 20;"/>
+                    </HBox>
+                </VBox>
+                <Button fx:id="btnEditEmail" text="✏ Sửa" onAction="#handleEditEmail"
+                        style="-fx-background-color: transparent; -fx-text-fill: #CC0000; -fx-font-size: 14px; -fx-cursor: hand; -fx-border-color: #CC0000; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 5 14 5 14;"/>
+            </HBox>
+
+            <!-- Số điện thoại (có thể chỉnh sửa) -->
+            <HBox alignment="CENTER_LEFT"
+                  style="-fx-padding: 22 32 22 32; -fx-border-color: #2a2a2a; -fx-border-width: 0 0 1 0;">
+                <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label text="Số điện thoại" style="-fx-text-fill: #888888; -fx-font-size: 13px;"/>
+                    <Label fx:id="lblPhone" text="—"
+                           style="-fx-text-fill: white; -fx-font-size: 18px;"/>
+                    <TextField fx:id="txtPhone" promptText="Nhập số điện thoại"
+                               style="-fx-background-color: #2a2a2a; -fx-text-fill: white; -fx-font-size: 16px; -fx-background-radius: 6; -fx-border-color: #555; -fx-border-radius: 6; -fx-padding: 8 12 8 12;"
+                               visible="false" managed="false"/>
+                    <Label fx:id="lblPhoneMsg" text="" style="-fx-font-size: 13px;"/>
+                    <HBox fx:id="hboxPhoneButtons" spacing="10" visible="false" managed="false">
+                        <Button text="Lưu" onAction="#handleSavePhone"
+                                style="-fx-background-color: #CC0000; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 20 6 20;"/>
+                        <Button text="Hủy" onAction="#handleCancelPhone"
+                                style="-fx-background-color: #444; -fx-text-fill: white; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 20 6 20;"/>
+                    </HBox>
+                </VBox>
+                <Button fx:id="btnEditPhone" text="✏ Sửa" onAction="#handleEditPhone"
+                        style="-fx-background-color: transparent; -fx-text-fill: #CC0000; -fx-font-size: 14px; -fx-cursor: hand; -fx-border-color: #CC0000; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 5 14 5 14;"/>
+            </HBox>
+
+            <!-- Vai trò -->
+            <HBox style="-fx-padding: 22 32 22 32;">
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="Vai trò" style="-fx-text-fill: #888888; -fx-font-size: 13px;"/>
+                    <Label fx:id="lblRole" text="—"
+                           style="-fx-text-fill: #4CAF50; -fx-font-size: 18px; -fx-font-weight: bold;"/>
+                </VBox>
+            </HBox>
+
+        </VBox>
+    </VBox>
+
+</VBox>
