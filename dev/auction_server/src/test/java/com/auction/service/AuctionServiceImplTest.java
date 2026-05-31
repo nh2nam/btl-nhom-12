@@ -2,6 +2,7 @@ package com.auction.service;
 
 import com.auction.model.Auction;
 import com.auction.util.AuctionManager;
+import com.auction.model.Electronics;
 import com.auction.model.Item;
 
 // Import thêm các Exception mới tạo
@@ -27,8 +28,7 @@ public class AuctionServiceImplTest {
     public void setUp() {
         auctionService = new AuctionServiceImpl();
 
-        // ĐỔI: Sử dụng Item thay cho Electronics
-        Item laptop = new Item(1, "Laptop Dell", "Mới", 500.0, "/images/laptop.png");
+        Item laptop = new Electronics(1, "Laptop Dell", "Moi", 500.0, "/images/laptop.png");
 
         testAuction = new Auction(100, 1, laptop.getId(), LocalDateTime.now(), LocalDateTime.now().plusDays(1), laptop.getStartingPrice());
         testAuction.setStatus("RUNNING");

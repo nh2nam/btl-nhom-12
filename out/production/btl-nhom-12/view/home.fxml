@@ -32,9 +32,8 @@
                                 <ContextMenu fx:id="userMenu"
                                              style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
                                     <items>
-                                        <MenuItem text="Thông tin cá nhân" />
-                                        <MenuItem text="Sản phẩm của bạn" />
-                                        <MenuItem text="Lịch sử đấu giá thành công" onAction="#goToMyResults"/>
+                                        <MenuItem text="Thông tin cá nhân" onAction="#goToProfile"/>
+                                        <MenuItem text="Sản phẩm của bạn" onAction="#goToMyProducts"/>
                                         <MenuItem text="Đăng xuất" onAction="#logout"/>
                                     </items>
                                 </ContextMenu>
@@ -53,6 +52,7 @@
                                 <ContextMenu fx:id="auctionMenu"
                                              style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
                                     <items>
+                                        <MenuItem text="Tất cả danh mục" onAction="#filterByCategory"/>
                                         <MenuItem text="Nghệ thuật" onAction="#filterByCategory"/>
                                         <MenuItem text="Điện tử" onAction="#filterByCategory"/>
                                         <MenuItem text="Bất động sản" onAction="#filterByCategory"/>
