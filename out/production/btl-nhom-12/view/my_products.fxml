@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox prefHeight="800.0" prefWidth="1280.0"
+      xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.auction.client.controller.MyProductsController"
+      style="-fx-background-color: #0d0d0d;">
+
+    <!-- ===== NAVBAR ===== -->
+    <HBox alignment="CENTER_LEFT" prefHeight="72.0"
+          style="-fx-background-color: #0d0d0d; -fx-border-color: #1f1f1f; -fx-border-width: 0 0 1 0; -fx-padding: 0 40 0 40;">
+        <Label text="←" onMouseClicked="#goBack"
+               style="-fx-text-fill: #666; -fx-font-size: 22px; -fx-cursor: hand; -fx-padding: 0 16 0 0;">
+            <font><Font size="22.0"/></font>
+        </Label>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="Sản phẩm của bạn"
+                   style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
+            <Label fx:id="lblSummary" text="Đang tải..."
+                   style="-fx-text-fill: #555; -fx-font-size: 13px;"/>
+        </VBox>
+    </HBox>
+
+    <!-- ===== TAB BAR ===== -->
+    <HBox fx:id="tabBar" prefHeight="52.0" spacing="0"
+          style="-fx-background-color: #0d0d0d; -fx-border-color: #1f1f1f; -fx-border-width: 0 0 1 0; -fx-padding: 0 40 0 40;">
+        <!-- Tab buttons được tạo từ controller -->
+        <Label fx:id="tabSelling"  text="🔴  Đang bán"      onMouseClicked="#switchTab"
+               style="-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 14 24 14 24; -fx-cursor: hand; -fx-border-color: #CC0000; -fx-border-width: 0 0 3 0;"/>
+        <Label fx:id="tabBidding"  text="🟢  Đang đấu giá"  onMouseClicked="#switchTab"
+               style="-fx-text-fill: #666; -fx-font-size: 14px; -fx-padding: 14 24 14 24; -fx-cursor: hand;"/>
+        <Label fx:id="tabSoldDone" text="📦  Đã bán"         onMouseClicked="#switchTab"
+               style="-fx-text-fill: #666; -fx-font-size: 14px; -fx-padding: 14 24 14 24; -fx-cursor: hand;"/>
+        <Label fx:id="tabBidDone"  text="🏁  Đã đấu giá"    onMouseClicked="#switchTab"
+               style="-fx-text-fill: #666; -fx-font-size: 14px; -fx-padding: 14 24 14 24; -fx-cursor: hand;"/>
+    </HBox>
+
+    <!-- ===== NỘI DUNG TAB ===== -->
+    <StackPane VBox.vgrow="ALWAYS" style="-fx-background-color: #0d0d0d;">
+
+        <!-- Tab: Đang bán -->
+        <ScrollPane fx:id="scrollSelling" fitToWidth="true"
+                    style="-fx-background-color: #0d0d0d; -fx-background: #0d0d0d;">
+            <content>
+                <VBox style="-fx-padding: 32 48 48 48; -fx-background-color: #0d0d0d;">
+                    <Label fx:id="lblSellingCount" text=""
+                           style="-fx-text-fill: #444; -fx-font-size: 13px; -fx-padding: 0 0 20 0;"/>
+                    <FlowPane fx:id="paneSellingActive" hgap="20" vgap="20"/>
+                </VBox>
+            </content>
+        </ScrollPane>
+
+        <!-- Tab: Đang đấu giá -->
+        <ScrollPane fx:id="scrollBidding" fitToWidth="true" visible="false"
+                    style="-fx-background-color: #0d0d0d; -fx-background: #0d0d0d;">
+            <content>
+                <VBox style="-fx-padding: 32 48 48 48; -fx-background-color: #0d0d0d;">
+                    <Label fx:id="lblBiddingCount" text=""
+                           style="-fx-text-fill: #444; -fx-font-size: 13px; -fx-padding: 0 0 20 0;"/>
+                    <FlowPane fx:id="paneBiddingActive" hgap="20" vgap="20"/>
+                </VBox>
+            </content>
+        </ScrollPane>
+
+        <!-- Tab: Đã bán -->
+        <ScrollPane fx:id="scrollSoldDone" fitToWidth="true" visible="false"
+                    style="-fx-background-color: #0d0d0d; -fx-background: #0d0d0d;">
+            <content>
+                <VBox style="-fx-padding: 32 48 48 48; -fx-background-color: #0d0d0d;">
+                    <Label fx:id="lblSoldCount" text=""
+                           style="-fx-text-fill: #444; -fx-font-size: 13px; -fx-padding: 0 0 20 0;"/>
+                    <FlowPane fx:id="paneSoldDone" hgap="20" vgap="20"/>
+                </VBox>
+            </content>
+        </ScrollPane>
+
+        <!-- Tab: Đã đấu giá -->
+        <ScrollPane fx:id="scrollBidDone" fitToWidth="true" visible="false"
+                    style="-fx-background-color: #0d0d0d; -fx-background: #0d0d0d;">
+            <content>
+                <VBox style="-fx-padding: 32 48 48 48; -fx-background-color: #0d0d0d;">
+                    <Label fx:id="lblBidDoneCount" text=""
+                           style="-fx-text-fill: #444; -fx-font-size: 13px; -fx-padding: 0 0 20 0;"/>
+                    <FlowPane fx:id="paneBidDone" hgap="20" vgap="20"/>
+                </VBox>
+            </content>
+        </ScrollPane>
+
+    </StackPane>
+
+</VBox>
