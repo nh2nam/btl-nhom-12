@@ -49,9 +49,12 @@ public class SellingProductController {
     private double currentHighestBid;
     private int  currentAuctionId = -1;
 
-
-    // Scheduler polling lịch sử mỗi 10 giây
-    private ScheduledExecutorService pollingScheduler;
+    private java.net.Socket radioSocket; // Ống nghe sự kiện
+    // OBSERVER: Biến lưu trữ giao diện Dialog để cập nhật Real-time
+    private VBox dialogHistoryBox;
+    private javafx.scene.chart.XYChart.Series<Number, Number> dialogChartSeries;
+    private javafx.scene.chart.NumberAxis dialogXAxis;
+    private javafx.scene.chart.NumberAxis dialogYAxis;
 
     @FXML
     public void initialize() {
@@ -66,9 +69,9 @@ public class SellingProductController {
             btnConfirm.setStyle(empty ? GRAY_STYLE : GREEN_STYLE);
             btnConfirm.setDisable(empty);
         });
+        startListeningForPrices();
 
-        // Bắt đầu polling lịch sử đặt giá mỗi 10 giây
-        startPolling();
+
     }
 
     public void setProductData(Map<String, Object> selectedAuction) {
@@ -229,73 +232,26 @@ public class SellingProductController {
 
     @FXML
     private void handleShowBidHistory() {
-        if (currentAuctionId == -1) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không xác định được phiên đấu giá!");
-            return;
-        }
-
-        // Tải lịch sử mới nhất trước khi hiện dialog
-        Map<String, Object> data = new HashMap<>();
-        data.put("auctionId", currentAuctionId);
-        Response response = ServerConnection.getInstance().send("GET_BID_HISTORY", data);
+        if (currentAuctionId == -1) return;
 
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Lịch sử đấu giá");
         dialog.setHeaderText(null);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-
-        // Style dialog pane tối
-        dialog.getDialogPane().setStyle(
-                "-fx-background-color: #2a2a2a;"
-        );
+        dialog.getDialogPane().setStyle("-fx-background-color: #2a2a2a;");
 
         VBox container = new VBox(12);
         container.setStyle("-fx-padding: 20; -fx-background-color: #2a2a2a;");
         container.setPrefWidth(480);
-
         Label title = new Label("LỊCH SỬ ĐẤU GIÁ");
         title.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
-
         Separator sep = new Separator();
         sep.setStyle("-fx-background-color: #555;");
 
         VBox listBox = new VBox(8);
         listBox.setStyle("-fx-padding: 4 0 0 0;");
 
-        if (!response.isSuccess()) {
-            Label err = new Label("Không thể tải lịch sử đấu giá.");
-            err.setStyle("-fx-text-fill: #ff5252; -fx-font-size: 14px;");
-            listBox.getChildren().add(err);
-        } else {
-            Type listType = new com.google.gson.reflect.TypeToken<List<Map<String, Object>>>(){}.getType();
-            List<Map<String, Object>> history;
-            try {
-                history = gson.fromJson(response.getData(), listType);
-            } catch (Exception e) {
-                history = null;
-            }
-
-            if (history == null || history.isEmpty()) {
-                Label empty = new Label("Chưa có lịch sử đặt giá.");
-                empty.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 14px;");
-                listBox.getChildren().add(empty);
-            } else {
-                for (int i = history.size() - 1; i >= 0; i--) {
-                    Map<String, Object> bid = history.get(i);
-                    double amount     = ((Number) bid.get("amount")).doubleValue();
-                    String bidTime    = String.valueOf(bid.get("bidTime"));
-                    String bidderName = bid.get("bidderName") != null
-                            ? String.valueOf(bid.get("bidderName"))
-                            : "Bidder #" + ((Number) bid.get("bidderId")).intValue();
-
-                    Label row = new Label(String.format("👤 %s   —   %,.0f VNĐ   —   %s", bidderName, amount, bidTime));
-                    row.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 14px; -fx-padding: 6 10; " +
-                            "-fx-background-color: #1e1e1e; -fx-background-radius: 6;");
-                    row.setMaxWidth(Double.MAX_VALUE);
-                    listBox.getChildren().add(row);
-                }
-            }
-        }
+        dialogHistoryBox = listBox; // GẮN CẦU NỐI CHO OBSERVER
 
         ScrollPane scrollPane = new ScrollPane(listBox);
         scrollPane.setFitToWidth(true);
@@ -304,156 +260,98 @@ public class SellingProductController {
 
         container.getChildren().addAll(title, sep, scrollPane);
         dialog.getDialogPane().setContent(container);
-
-        // Style nút Close
         dialog.getDialogPane().lookupButton(ButtonType.CLOSE)
                 .setStyle("-fx-background-color: #555; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
 
+        // Dọn dẹp cầu nối khi người dùng tắt cửa sổ
+        dialog.setOnHidden(e -> dialogHistoryBox = null);
+
+        // Kích hoạt nạp dữ liệu lần đầu (chạy ngầm để không đơ màn hình)
+        new Thread(this::loadBidHistory).start();
+
         dialog.showAndWait();
     }
-
     // -------------------------------------------------------------------------
     // Biểu đồ giá
     // -------------------------------------------------------------------------
 
     @FXML
     private void handleShowPriceChart() {
-        if (currentAuctionId == -1) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không xác định được phiên đấu giá!");
-            return;
-        }
+        if (currentAuctionId == -1) return;
 
-        // Lấy lịch sử từ server
-        Map<String, Object> req = new HashMap<>();
-        req.put("auctionId", currentAuctionId);
-        Response response = ServerConnection.getInstance().send("GET_BID_HISTORY", req);
-
-        // Parse dữ liệu
-        Type listType = new TypeToken<List<Map<String, Object>>>(){}.getType();
-        List<Map<String, Object>> history = null;
-        if (response.isSuccess()) {
-            try {
-                history = gson.fromJson(response.getData(), listType);
-            } catch (Exception ignored) {}
-        }
-
-        // Trục X: thứ tự lượt đặt, Trục Y: giá
         javafx.scene.chart.NumberAxis xAxis = new javafx.scene.chart.NumberAxis();
         javafx.scene.chart.NumberAxis yAxis = new javafx.scene.chart.NumberAxis();
         xAxis.setLabel("Lượt đặt giá");
         yAxis.setLabel("Giá (VNĐ)");
         xAxis.setTickUnit(1);
         xAxis.setMinorTickVisible(false);
-
-        // Tính giá max để set upper bound có khoảng trống cho label
-        final List<Map<String, Object>> finalHistory = history;
-        double maxPrice = currentHighestBid;
-        if (finalHistory != null && !finalHistory.isEmpty()) {
-            for (Map<String, Object> bid : finalHistory) {
-                double a = ((Number) bid.get("amount")).doubleValue();
-                if (a > maxPrice) maxPrice = a;
-            }
-        }
-
-        // Số điểm dữ liệu
-        int dataCount = (finalHistory != null && !finalHistory.isEmpty()) ? finalHistory.size() : 1;
-
-        // Trục X: thêm 1.5 đơn vị padding bên phải để label điểm cuối không bị khuất
         xAxis.setAutoRanging(false);
         xAxis.setLowerBound(0);
-        xAxis.setUpperBound(dataCount + 1.5);
-        xAxis.setTickUnit(Math.max(1, dataCount / 10.0));
-
-        // Trục Y: upper bound = max + 15% để label trên đỉnh không bị cắt
         yAxis.setAutoRanging(false);
         yAxis.setLowerBound(0);
-        yAxis.setUpperBound(maxPrice * 1.15);
-        yAxis.setTickUnit(maxPrice * 1.15 / 8);
 
-        javafx.scene.chart.LineChart<Number, Number> lineChart =
-                new javafx.scene.chart.LineChart<>(xAxis, yAxis);
+        dialogXAxis = xAxis; // GẮN CẦU NỐI CHO OBSERVER
+        dialogYAxis = yAxis;
+
+        javafx.scene.chart.LineChart<Number, Number> lineChart = new javafx.scene.chart.LineChart<>(xAxis, yAxis);
         lineChart.setTitle("Biến động giá đấu giá");
-        lineChart.setAnimated(false);
+        lineChart.setAnimated(false); // Phải tắt Animated để Observer vẽ mượt
         lineChart.setLegendVisible(false);
         lineChart.setPrefSize(720, 430);
         lineChart.setStyle("-fx-background-color: #1e1e1e;");
 
-        javafx.scene.chart.XYChart.Series<Number, Number> series =
-                new javafx.scene.chart.XYChart.Series<>();
+        javafx.scene.chart.XYChart.Series<Number, Number> series = new javafx.scene.chart.XYChart.Series<>();
         series.setName("Giá đặt");
-
-        if (finalHistory != null && !finalHistory.isEmpty()) {
-            for (int i = 0; i < finalHistory.size(); i++) {
-                Map<String, Object> bid = finalHistory.get(i);
-                double amount = ((Number) bid.get("amount")).doubleValue();
-
-                // Tạo node tùy chỉnh: chấm xanh + label giá phía trên
-                javafx.scene.layout.StackPane dotWithLabel = makeDotNode(amount);
-
-                javafx.scene.chart.XYChart.Data<Number, Number> dp =
-                        new javafx.scene.chart.XYChart.Data<>(i + 1, amount);
-                dp.setNode(dotWithLabel);
-                series.getData().add(dp);
-            }
-        } else {
-            javafx.scene.layout.StackPane dotWithLabel = makeDotNode(currentHighestBid);
-            javafx.scene.chart.XYChart.Data<Number, Number> dp =
-                    new javafx.scene.chart.XYChart.Data<>(1, currentHighestBid);
-            dp.setNode(dotWithLabel);
-            series.getData().add(dp);
-        }
-
         lineChart.getData().add(series);
 
-        // CSS cho chart tối
+        dialogChartSeries = series; // GẮN CẦU NỐI CHO OBSERVER
+
         lineChart.getStylesheets().add(
                 "data:text/css," +
-                ".chart-plot-background{-fx-background-color:#2a2a2a;}" +
-                ".chart-title{-fx-text-fill:#ffffff;-fx-font-size:15px;-fx-font-weight:bold;}" +
-                ".axis-label{-fx-text-fill:#dddddd;-fx-font-size:12px;}" +
-                ".axis{-fx-tick-label-fill:#cccccc;}" +
-                ".chart-legend{-fx-background-color:#2a2a2a;-fx-alignment:center;}" +
-                ".chart-legend-item{-fx-text-fill:#FFD54F;-fx-font-size:13px;-fx-font-weight:bold;}" +
-                ".default-color0.chart-series-line{-fx-stroke:#4FC3F7;-fx-stroke-width:2.5px;}" +
-                ".default-color0.chart-line-symbol{-fx-background-color:transparent;}" +
-                ".chart-vertical-grid-lines{-fx-stroke:#3a3a3a;}" +
-                ".chart-horizontal-grid-lines{-fx-stroke:#3a3a3a;}"
+                        ".chart-plot-background{-fx-background-color:#2a2a2a;}" +
+                        ".chart-title{-fx-text-fill:#ffffff;-fx-font-size:15px;-fx-font-weight:bold;}" +
+                        ".axis-label{-fx-text-fill:#dddddd;-fx-font-size:12px;}" +
+                        ".axis{-fx-tick-label-fill:#cccccc;}" +
+                        ".default-color0.chart-series-line{-fx-stroke:#4FC3F7;-fx-stroke-width:2.5px;}" +
+                        ".default-color0.chart-line-symbol{-fx-background-color:transparent;}" +
+                        ".chart-vertical-grid-lines{-fx-stroke:#3a3a3a;}" +
+                        ".chart-horizontal-grid-lines{-fx-stroke:#3a3a3a;}"
         );
 
-        // Bọc chart trong HBox để legend căn giữa toàn bộ chiều ngang
         javafx.scene.layout.HBox chartWrapper = new javafx.scene.layout.HBox(lineChart);
         chartWrapper.setAlignment(javafx.geometry.Pos.CENTER);
         javafx.scene.layout.HBox.setHgrow(lineChart, javafx.scene.layout.Priority.ALWAYS);
 
-        // Dialog
         Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("Biểu đồ giá — " + lblProductName.getText());
+        dialog.setTitle("Biểu đồ giá");
         dialog.setHeaderText(null);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dialog.getDialogPane().setStyle("-fx-background-color: #1e1e1e;");
 
         VBox wrapper = new VBox(10);
         wrapper.setStyle("-fx-padding: 15; -fx-background-color: #1e1e1e;");
-
         Label titleLbl = new Label("BIỂU ĐỒ GIÁ ĐẤU GIÁ");
         titleLbl.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
-
         Separator sep = new Separator();
         sep.setStyle("-fx-background-color: #555;");
 
         wrapper.getChildren().addAll(titleLbl, sep, chartWrapper);
         dialog.getDialogPane().setContent(wrapper);
-
         dialog.getDialogPane().lookupButton(ButtonType.CLOSE)
                 .setStyle("-fx-background-color: #555; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
 
+        // Dọn dẹp cầu nối khi đóng
+        dialog.setOnHidden(e -> {
+            dialogChartSeries = null;
+            dialogXAxis = null;
+            dialogYAxis = null;
+        });
+
+        // Kích hoạt nạp dữ liệu lần đầu
+        new Thread(this::loadBidHistory).start();
+
         dialog.showAndWait();
     }
-
-    /**
-     * Tạo node cho một điểm dữ liệu: chấm xanh tròn + label giá vàng phía trên.
-     * Label được đặt trong cùng StackPane với chấm, dịch lên trên bằng translateY.
-     */
     private javafx.scene.layout.StackPane makeDotNode(double amount) {
         // Chấm xanh
         javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(5);
@@ -512,55 +410,138 @@ public class SellingProductController {
 
         // Cập nhật UI trên JavaFX thread
         Platform.runLater(() -> {
-            vboxBidHistory.getChildren().clear();
-            if (history == null || history.isEmpty()) {
-                vboxBidHistory.getChildren().add(new Label("Chưa có lịch sử đặt giá."));
-                return;
-            }
 
-            // Lấy giá cao nhất từ lịch sử để cập nhật label giá hiện tại
-            double highestBid = history.stream()
-                    .mapToDouble(bid -> ((Number) bid.get("amount")).doubleValue())
-                    .max()
-                    .orElse(currentHighestBid);
+            // --- 0. CẬP NHẬT NHÃN GIÁ MÀU ĐỎ MỚI NHẤT ---
+            double highestBid = currentHighestBid;
+            if (history != null && !history.isEmpty()) {
+                highestBid = history.stream()
+                        .mapToDouble(bid -> ((Number) bid.get("amount")).doubleValue())
+                        .max()
+                        .orElse(currentHighestBid);
+            }
 
             if (highestBid > currentHighestBid) {
                 currentHighestBid = highestBid;
                 lblCurrentPrice.setText(String.format("%,.0f VNĐ", highestBid));
             }
 
-            // Hiển thị mới nhất lên đầu
-            for (int i = history.size() - 1; i >= 0; i--) {
-                Map<String, Object> bid = history.get(i);
-                double amount      = ((Number) bid.get("amount")).doubleValue();
-                String bidTime     = String.valueOf(bid.get("bidTime"));
-                String bidderName  = bid.get("bidderName") != null
-                        ? String.valueOf(bid.get("bidderName"))
-                        : "Bidder #" + ((Number) bid.get("bidderId")).intValue();
+            // --- 1. CẬP NHẬT MAIN UI (Có giáp thép chống Crash) ---
+            if (vboxBidHistory != null) {
+                vboxBidHistory.getChildren().clear();
+                if (history == null || history.isEmpty()) {
+                    vboxBidHistory.getChildren().add(new Label("Chưa có lịch sử đặt giá."));
+                } else {
+                    for (int i = history.size() - 1; i >= 0; i--) {
+                        Map<String, Object> bid = history.get(i);
+                        double amount      = ((Number) bid.get("amount")).doubleValue();
+                        String bidTime     = String.valueOf(bid.get("bidTime"));
+                        String bidderName  = bid.get("bidderName") != null ? String.valueOf(bid.get("bidderName")) : "Bidder";
 
-                Label lbl = new Label(String.format("%s  —  %,.0fVND  —  %s", bidderName, amount, bidTime));
-                lbl.setStyle("-fx-font-size: 13px; -fx-padding: 4 0; -fx-text-fill: #cccccc;");
-                vboxBidHistory.getChildren().add(lbl);
+                        Label lbl = new Label(String.format("%s  —  %,.0fVND  —  %s", bidderName, amount, bidTime));
+                        lbl.setStyle("-fx-font-size: 13px; -fx-padding: 4 0; -fx-text-fill: #cccccc;");
+                        vboxBidHistory.getChildren().add(lbl);
+                    }
+                }
+            }
+
+            // --- 2. CẬP NHẬT DIALOG LỊCH SỬ (Nếu người dùng đang mở) ---
+            if (dialogHistoryBox != null) {
+                dialogHistoryBox.getChildren().clear();
+                if (history == null || history.isEmpty()) {
+                    Label empty = new Label("Chưa có lịch sử đặt giá.");
+                    empty.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 14px;");
+                    dialogHistoryBox.getChildren().add(empty);
+                } else {
+                    for (int i = history.size() - 1; i >= 0; i--) {
+                        Map<String, Object> bid = history.get(i);
+                        double amount     = ((Number) bid.get("amount")).doubleValue();
+                        String bidTime    = String.valueOf(bid.get("bidTime"));
+                        String bidderName = bid.get("bidderName") != null ? String.valueOf(bid.get("bidderName")) : "Bidder";
+
+                        Label row = new Label(String.format("👤 %s   —   %,.0f VNĐ   —   %s", bidderName, amount, bidTime));
+                        row.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 14px; -fx-padding: 6 10; -fx-background-color: #1e1e1e; -fx-background-radius: 6;");
+                        row.setMaxWidth(Double.MAX_VALUE);
+                        dialogHistoryBox.getChildren().add(row);
+                    }
+                }
+            }
+
+            // --- 3. CẬP NHẬT DIALOG BIỂU ĐỒ (Nếu người dùng đang mở) ---
+            if (dialogChartSeries != null && dialogXAxis != null && dialogYAxis != null) {
+                dialogChartSeries.getData().clear();
+                double maxPrice = currentHighestBid;
+                int dataCount = (history != null && !history.isEmpty()) ? history.size() : 1;
+
+                if (history != null && !history.isEmpty()) {
+                    for (int i = 0; i < history.size(); i++) {
+                        Map<String, Object> bid = history.get(i);
+                        double amount = ((Number) bid.get("amount")).doubleValue();
+                        if (amount > maxPrice) maxPrice = amount;
+
+                        javafx.scene.chart.XYChart.Data<Number, Number> dp = new javafx.scene.chart.XYChart.Data<>(i + 1, amount);
+                        dp.setNode(makeDotNode(amount)); // Gọi hàm vẽ chấm xanh
+                        dialogChartSeries.getData().add(dp);
+                    }
+                } else {
+                    javafx.scene.chart.XYChart.Data<Number, Number> dp = new javafx.scene.chart.XYChart.Data<>(1, currentHighestBid);
+                    dp.setNode(makeDotNode(currentHighestBid));
+                    dialogChartSeries.getData().add(dp);
+                }
+
+                // Tự động thu phóng trục toạ độ
+                dialogXAxis.setUpperBound(dataCount + 1.5);
+                dialogXAxis.setTickUnit(Math.max(1, dataCount / 10.0));
+                dialogYAxis.setUpperBound(maxPrice * 1.15);
+                dialogYAxis.setTickUnit(maxPrice * 1.15 / 8);
             }
         });
     }
+    private void startListeningForPrices() {
+        Thread listenerThread = new Thread(() -> {
+            try {
+                radioSocket = new java.net.Socket("localhost", 9999);
+                java.io.PrintWriter out = new java.io.PrintWriter(radioSocket.getOutputStream(), true);
+                java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(radioSocket.getInputStream()));
 
-    /** Polling tự động mỗi 10 giây để cập nhật lịch sử */
-    private void startPolling() {
-        pollingScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "bid-history-poller");
-            t.setDaemon(true); // Tự tắt khi app đóng
-            return t;
+                out.println("{\"action\": \"SUBSCRIBE_PRICE\"}");
+
+                String message;
+                while ((message = in.readLine()) != null) {
+                    if (message.contains("UPDATE_PRICE")) {
+                        Map<String, Object> data = gson.fromJson(message, new TypeToken<Map<String, Object>>(){}.getType());
+                        int id = ((Number) data.get("auctionId")).intValue();
+                        double newPrice = ((Number) data.get("newPrice")).doubleValue(); // Lấy giá mới trực tiếp từ loa thông báo
+
+                        if (id == currentAuctionId) {
+                            // 1. NHẢY GIÁ ĐỎ LẬP TỨC TRÊN GIAO DIỆN
+                            Platform.runLater(() -> {
+                                if (newPrice > currentHighestBid) {
+                                    currentHighestBid = newPrice;
+                                    lblCurrentPrice.setText(String.format("%,.0f VNĐ", newPrice));
+                                }
+                            });
+
+                            // 2. KÉO LỊCH SỬ Ở LUỒNG NGẦM (Không làm đơ màn hình)
+                            loadBidHistory();
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("📻 Đài phát thanh đã ngắt kết nối.");
+            }
         });
-        pollingScheduler.scheduleAtFixedRate(this::loadBidHistory, 1, 5, TimeUnit.SECONDS);
+        listenerThread.setDaemon(true);
+        listenerThread.start();
     }
 
-    /** Dừng polling khi rời màn hình */
-    private void stopPolling() {
-        if (pollingScheduler != null && !pollingScheduler.isShutdown()) {
-            pollingScheduler.shutdown();
-        }
+    private void stopListening() {
+        try {
+            if (radioSocket != null && !radioSocket.isClosed()) radioSocket.close();
+        } catch (Exception ignored) {}
     }
+
+
+
 
     // -------------------------------------------------------------------------
     // Navigation
@@ -593,13 +574,13 @@ public class SellingProductController {
 
     @FXML
     private void logout() {
-        stopPolling();
+        stopListening();
         Main.changeScene("/view/login.fxml");
     }
 
     @FXML
     private void goHome() {
-        stopPolling();
+        stopListening();
         Main.changeScene("/view/home.fxml");
     }
 
