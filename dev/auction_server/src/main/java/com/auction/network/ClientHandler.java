@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.auction.dao.BidTransactionDAO;
+import com.auction.dao.ChatMessageDAO;
 import com.auction.exception.AuctionException;
 import com.auction.model.Admin;
 import com.auction.model.Auction;
@@ -33,12 +34,14 @@ public class ClientHandler implements Runnable {
     private Gson gson;
     private IAuctionService auctionService;
     private BidTransactionDAO bidTransactionDAO;
+    private ChatMessageDAO chatMessageDAO;
 
     public ClientHandler(Socket socket) {
         this.socket = socket;
         this.gson = new Gson();
         this.auctionService = new AuctionServiceImpl();
         this.bidTransactionDAO = new BidTransactionDAO();
+        this.chatMessageDAO = new ChatMessageDAO();
     }
 
     @Override
@@ -86,6 +89,8 @@ public class ClientHandler implements Runnable {
                     responseMap = handleUpdateEmail(payload);
                 } else if ("SEND_CHAT".equals(action)) {
                     responseMap = handleSendChat(payload);
+                } else if ("GET_CHAT_HISTORY".equals(action)) {
+                    responseMap = handleGetChatHistory(payload);
                 } else if ("SUBSCRIBE_PRICE".equals(action)) {
                     System.out.println("🎧 Một Client vừa đăng ký nghe Đài phát thanh giá!");
                     BroadcastManager.addObserver(out);
@@ -663,14 +668,39 @@ public class ClientHandler implements Runnable {
                 return response;
             }
 
-            // Phát tin nhắn đến tất cả client đang subscribe
-            BroadcastManager.broadcastChatMessage(auctionId, senderName, content.trim());
+            String trimmed = content.trim();
+
+            // 1. Lưu vào database để giữ lịch sử lâu dài
+            chatMessageDAO.insertMessage(auctionId, senderName, trimmed);
+
+            // 2. Phát tin nhắn đến tất cả client đang subscribe (kể cả người gửi)
+            BroadcastManager.broadcastChatMessage(auctionId, senderName, trimmed);
 
             response.put("success", true);
             response.put("message", "Tin nhắn đã được gửi!");
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "Lỗi server khi gửi tin nhắn: " + e.getMessage());
+        }
+        return response;
+    }
+
+    /** Trả về lịch sử chat của một phiên đấu giá */
+    private Map<String, Object> handleGetChatHistory(Object payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Map<String, Object> data = gson.fromJson(
+                    gson.toJson(payload), new TypeToken<Map<String, Object>>(){}.getType());
+            int auctionId = ((Number) data.get("auctionId")).intValue();
+
+            List<Map<String, Object>> history = chatMessageDAO.getMessagesByAuctionId(auctionId);
+
+            response.put("success", true);
+            response.put("message", "Tải lịch sử chat thành công!");
+            response.put("data", history);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Lỗi server khi tải lịch sử chat: " + e.getMessage());
         }
         return response;
     }

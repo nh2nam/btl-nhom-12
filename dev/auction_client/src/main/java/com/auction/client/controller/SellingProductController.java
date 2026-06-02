@@ -85,6 +85,8 @@ public class SellingProductController {
             btnConfirm.setDisable(empty);
         });
         startListeningForPrices();
+        // Tải lịch sử chat từ server khi vừa vào phòng
+        new Thread(this::loadChatHistory).start();
 
 
     }
@@ -656,6 +658,41 @@ public class SellingProductController {
         listenerThread.start();
     }
 
+    /**
+     * Tải lịch sử chat từ server và hiển thị lại toàn bộ.
+     * Gọi lần đầu khi initialize và có thể gọi lại sau khi reconnect.
+     */
+    private void loadChatHistory() {
+        if (currentAuctionId == -1) return;
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("auctionId", currentAuctionId);
+        Response response = ServerConnection.getInstance().send("GET_CHAT_HISTORY", data);
+
+        if (!response.isSuccess()) return;
+
+        Type listType = new TypeToken<List<Map<String, Object>>>(){}.getType();
+        List<Map<String, Object>> history;
+        try {
+            history = new Gson().fromJson(response.getData(), listType);
+        } catch (Exception e) {
+            return;
+        }
+        if (history == null || history.isEmpty()) return;
+
+        String myName = UserSession.getInstance().getDisplayName();
+
+        Platform.runLater(() -> {
+            if (vboxChatMessages == null) return;
+            vboxChatMessages.getChildren().clear();
+            for (Map<String, Object> msg : history) {
+                String sender  = String.valueOf(msg.getOrDefault("sender",  "Ẩn danh"));
+                String content = String.valueOf(msg.getOrDefault("content", ""));
+                appendChatMessage(sender, content, sender.equals(myName));
+            }
+        });
+    }
+
     private void stopListening() {
         try {
             if (radioSocket != null && !radioSocket.isClosed()) radioSocket.close();
@@ -676,10 +713,9 @@ public class SellingProductController {
 
         txtChatInput.clear();
 
-        // Hiện ngay lên UI của người gửi (tin nhắn "của mình" — căn phải)
-        appendChatMessage(UserSession.getInstance().getDisplayName(), content, true);
-
-        // Gửi đến server trong luồng ngầm (tránh đơ UI)
+        // KHÔNG appendChatMessage local ở đây.
+        // Server sẽ broadcast lại cho tất cả (kể cả mình) → appendChatMessage sẽ được gọi
+        // khi nhận broadcast, tránh tin nhắn hiện 2 lần.
         new Thread(() -> {
             Map<String, Object> data = new HashMap<>();
             data.put("auctionId",  currentAuctionId);

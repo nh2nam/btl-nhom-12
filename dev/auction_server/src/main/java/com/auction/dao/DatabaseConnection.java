@@ -1,14 +1,14 @@
 package com.auction.dao;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.logging.Logger;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 /**
  * Quản lý Connection Pool bằng HikariCP.
@@ -124,8 +124,29 @@ public class DatabaseConnection {
                 );
             } catch (SQLException ignored) {}
 
+            // Tạo bảng chat_messages nếu chưa tồn tại
+            ensureChatTable(conn);
+
         } catch (SQLException e) {
             LOGGER.warning("⚠️ Không thể chạy schema migration: " + e.getMessage());
+        }
+    }
+
+    /** Tạo bảng chat_messages nếu chưa có */
+    private static void ensureChatTable(Connection conn) {
+        String sql =
+            "CREATE TABLE IF NOT EXISTS chat_messages (" +
+            "  id          INT AUTO_INCREMENT PRIMARY KEY," +
+            "  auction_id  INT         NOT NULL," +
+            "  sender_name VARCHAR(255) NOT NULL," +
+            "  content     TEXT        NOT NULL," +
+            "  sent_at     DATETIME    NOT NULL" +
+            ")";
+        try (java.sql.Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(sql);
+            LOGGER.info("✅ Bảng chat_messages đã sẵn sàng.");
+        } catch (SQLException e) {
+            LOGGER.warning("⚠️ Không thể tạo bảng chat_messages: " + e.getMessage());
         }
     }
 
