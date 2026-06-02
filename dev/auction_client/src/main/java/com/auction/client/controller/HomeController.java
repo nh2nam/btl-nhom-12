@@ -14,6 +14,7 @@ import javafx.geometry.Side;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
@@ -31,6 +32,7 @@ public class HomeController {
 
     @FXML private Label lblUsername;
     @FXML private VBox vboxProducts;
+    @FXML private TextField txtSearch;
 
 
     private final Gson gson = new Gson();
@@ -41,6 +43,7 @@ public class HomeController {
 
     private String categoryFilter;
     private String statusFilter;
+    private String searchFilter;
 
     private static final Map<String, String> MENU_TO_CATEGORY = Map.of(
             "Nghệ thuật", "Arts",
@@ -211,12 +214,41 @@ public class HomeController {
         return statusFilter.equals(auction.get("status"));
     }
 
+    private boolean matchesSearchFilter(Map<String, Object> auction) {
+        if (searchFilter == null || searchFilter.isBlank()) return true;
+        String keyword = searchFilter.toLowerCase().strip();
+        String name    = String.valueOf(auction.getOrDefault("name",        "")).toLowerCase();
+        String desc    = String.valueOf(auction.getOrDefault("description", "")).toLowerCase();
+        String cat     = String.valueOf(auction.getOrDefault("category",    "")).toLowerCase();
+        return name.contains(keyword) || desc.contains(keyword) || cat.contains(keyword);
+    }
+
+    @FXML
+    private void handleSearch(KeyEvent event) {
+        searchFilter = (txtSearch != null) ? txtSearch.getText() : "";
+        renderAuctionList();
+    }
+
+    @FXML
+    private void handleClearSearch() {
+        searchFilter = null;
+        if (txtSearch != null) txtSearch.clear();
+        renderAuctionList();
+    }
+
     private void renderAuctionList() {
         vboxProducts.getChildren().clear();
 
         List<Map<String, Object>> filtered = allAuctions.stream()
-                .filter(a -> matchesCategoryFilter(a) && matchesStatusFilter(a))
+                .filter(a -> matchesCategoryFilter(a) && matchesStatusFilter(a) && matchesSearchFilter(a))
                 .collect(Collectors.toList());
+
+        // Hiển thị tiêu đề kết quả tìm kiếm nếu đang tìm
+        if (searchFilter != null && !searchFilter.isBlank()) {
+            Label searchResultLbl = new Label("🔍 Kết quả tìm kiếm cho \"" + searchFilter.strip() + "\": " + filtered.size() + " sản phẩm");
+            searchResultLbl.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 16px; -fx-padding: 0 0 10 0;");
+            vboxProducts.getChildren().add(searchResultLbl);
+        }
 
         if (filtered.isEmpty()) {
             Label lbl = new Label(buildEmptyFilterMessage());
@@ -285,8 +317,11 @@ public class HomeController {
     }
 
     private String buildEmptyFilterMessage() {
-        if (categoryFilter == null && statusFilter == null) {
+        if (categoryFilter == null && statusFilter == null && (searchFilter == null || searchFilter.isBlank())) {
             return "Hiện chưa có phiên đấu giá nào.";
+        }
+        if (searchFilter != null && !searchFilter.isBlank()) {
+            return "Không tìm thấy sản phẩm nào khớp với \"" + searchFilter.strip() + "\".";
         }
         StringBuilder msg = new StringBuilder("Không có phiên đấu giá");
         if (categoryFilter != null) {
