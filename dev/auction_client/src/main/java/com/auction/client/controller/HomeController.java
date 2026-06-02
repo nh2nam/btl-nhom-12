@@ -70,11 +70,15 @@ public class HomeController {
         itemBox.setPrefWidth(300);
         itemBox.setStyle("-fx-background-color: #2a2a2a; -fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #333; -fx-cursor: hand;");
 
-        // --- Xử lý Hình ảnh (Đã nâng cấp dùng Link Cloudinary) ---
+        // --- Xử lý Hình ảnh (hỗ trợ nhiều ảnh phân cách bởi dấu phẩy, dùng ảnh đầu tiên) ---
         ImageView imgView = new ImageView();
-        String imgPath = (String) auction.get("itemImagePath");
+        String rawImgPath = (String) auction.get("itemImagePath");
+        // Lấy ảnh đầu tiên trong danh sách (ảnh bìa)
+        String imgPath = (rawImgPath != null && !rawImgPath.trim().isEmpty())
+                ? rawImgPath.split(",")[0].trim()
+                : null;
         try {
-            if (imgPath != null && !imgPath.trim().isEmpty() && imgPath.startsWith("http")) {
+            if (imgPath != null && !imgPath.isEmpty() && imgPath.startsWith("http")) {
                 // Kiểm tra xem ảnh này đã từng được tải về và cất trong kho chưa?
                 if (imageCache.containsKey(imgPath)) {
                     // Nếu có rồi, lôi từ kho ra dùng luôn, không cần mạng!

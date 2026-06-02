@@ -70,6 +70,10 @@ public class ClientHandler implements Runnable {
                     responseMap = handleGetMyAuctionResults(payload);
                 } else if ("GET_MY_PRODUCTS".equals(action)) {
                     responseMap = handleGetMyProducts(payload);
+                } else if ("CONFIRM_PAYMENT".equals(action)) {
+                    responseMap = handleConfirmPayment(payload);
+                } else if ("CANCEL_PAYMENT".equals(action)) {
+                    responseMap = handleCancelPayment(payload);
                 } else if ("UPDATE_PHONE".equals(action)) {
                     responseMap = handleUpdatePhone(payload);
                 } else if ("UPDATE_EMAIL".equals(action)) {
@@ -254,6 +258,12 @@ public class ClientHandler implements Runnable {
                     String formattedEnd = auction.getEndTime().toString().replace("T", " ");
                     if (formattedEnd.contains(".")) formattedEnd = formattedEnd.substring(0, formattedEnd.indexOf("."));
                     map.put("endTime", formattedEnd);
+
+                    if (auction.getPaymentDeadline() != null) {
+                        String deadline = auction.getPaymentDeadline().toString().replace("T", " ");
+                        if (deadline.contains(".")) deadline = deadline.substring(0, deadline.indexOf("."));
+                        map.put("paymentDeadline", deadline);
+                    }
 
                     resultList.add(map);
                 }
@@ -452,6 +462,8 @@ public class ClientHandler implements Runnable {
                         .anyMatch(b -> b.getBidderId() == userId);
                 boolean isRunning  = "RUNNING".equals(auction.getStatus());
                 boolean isFinished = "FINISHED".equals(auction.getStatus());
+                boolean isPending  = "PENDING_PAYMENT".equals(auction.getStatus());
+                boolean isCancelled = "CANCELLED".equals(auction.getStatus());
 
                 if (!isSeller && !hasBid) continue;
 
@@ -467,10 +479,22 @@ public class ClientHandler implements Runnable {
                 if (endTime.contains(".")) endTime = endTime.substring(0, endTime.indexOf("."));
                 map.put("endTime", endTime);
 
-                if (isSeller && isRunning)  selling.add(map);
-                if (isSeller && isFinished) soldDone.add(map);
-                if (!isSeller && hasBid && isRunning)  bidding.add(map);
-                if (!isSeller && hasBid && isFinished) bidDone.add(map);
+                // Gửi kèm paymentDeadline nếu đang PENDING_PAYMENT
+                if (auction.getPaymentDeadline() != null) {
+                    String deadline = auction.getPaymentDeadline().toString().replace("T", " ");
+                    if (deadline.contains(".")) deadline = deadline.substring(0, deadline.indexOf("."));
+                    map.put("paymentDeadline", deadline);
+                }
+
+                if (isSeller && isRunning)   selling.add(map);
+                if (isSeller && isFinished)  soldDone.add(map);
+                if (isSeller && isPending)   soldDone.add(map);   // Seller thấy trong tab đã bán
+                if (isSeller && isCancelled) soldDone.add(map);
+
+                if (!isSeller && hasBid && isRunning)   bidding.add(map);
+                if (!isSeller && hasBid && isFinished)  bidDone.add(map);
+                if (!isSeller && hasBid && isPending)   bidDone.add(map);  // Winner thấy trong tab đã đấu giá
+                if (!isSeller && hasBid && isCancelled) bidDone.add(map);
             }
 
             Map<String, Object> result = new HashMap<>();
@@ -486,6 +510,93 @@ public class ClientHandler implements Runnable {
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "Lỗi server khi tải sản phẩm: " + e.getMessage());
+        }
+        return response;
+    }
+
+    /** Xác nhận thanh toán thành công */
+    private Map<String, Object> handleConfirmPayment(Object payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Map<String, Object> data = gson.fromJson(
+                    gson.toJson(payload), new TypeToken<Map<String, Object>>(){}.getType());
+            int auctionId = ((Number) data.get("auctionId")).intValue();
+            int userId    = ((Number) data.get("userId")).intValue();
+
+            Auction auction = AuctionManager.getInstance().getAuction(auctionId);
+            if (auction == null) {
+                response.put("success", false);
+                response.put("message", "Không tìm thấy phiên đấu giá!");
+                return response;
+            }
+            synchronized (auction) {
+                if (!"PENDING_PAYMENT".equals(auction.getStatus())) {
+                    response.put("success", false);
+                    response.put("message", "Phiên này không ở trạng thái chờ thanh toán.");
+                    return response;
+                }
+                if (auction.getCurrentWinnerId() != userId) {
+                    response.put("success", false);
+                    response.put("message", "Bạn không phải người thắng phiên này!");
+                    return response;
+                }
+                // Kiểm tra còn trong hạn không
+                if (auction.getPaymentDeadline() != null
+                        && java.time.LocalDateTime.now().isAfter(auction.getPaymentDeadline())) {
+                    auction.setStatus("CANCELLED");
+                    AuctionManager.getInstance().updateAuctionInDB(auction);
+                    response.put("success", false);
+                    response.put("message", "Hết thời hạn thanh toán! Phiên đã bị hủy.");
+                    return response;
+                }
+                auction.setStatus("FINISHED");
+                AuctionManager.getInstance().updateAuctionInDB(auction);
+                System.out.println("💳 Phiên " + auctionId + " đã được thanh toán bởi user " + userId);
+            }
+            response.put("success", true);
+            response.put("message", "Thanh toán thành công! Cảm ơn bạn đã tham gia đấu giá.");
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Lỗi server khi xử lý thanh toán: " + e.getMessage());
+        }
+        return response;
+    }
+
+    /** Hủy thanh toán — người thắng chủ động từ bỏ */
+    private Map<String, Object> handleCancelPayment(Object payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Map<String, Object> data = gson.fromJson(
+                    gson.toJson(payload), new TypeToken<Map<String, Object>>(){}.getType());
+            int auctionId = ((Number) data.get("auctionId")).intValue();
+            int userId    = ((Number) data.get("userId")).intValue();
+
+            Auction auction = AuctionManager.getInstance().getAuction(auctionId);
+            if (auction == null) {
+                response.put("success", false);
+                response.put("message", "Không tìm thấy phiên đấu giá!");
+                return response;
+            }
+            synchronized (auction) {
+                if (!"PENDING_PAYMENT".equals(auction.getStatus())) {
+                    response.put("success", false);
+                    response.put("message", "Phiên này không ở trạng thái chờ thanh toán.");
+                    return response;
+                }
+                if (auction.getCurrentWinnerId() != userId) {
+                    response.put("success", false);
+                    response.put("message", "Bạn không phải người thắng phiên này!");
+                    return response;
+                }
+                auction.setStatus("CANCELLED");
+                AuctionManager.getInstance().updateAuctionInDB(auction);
+                System.out.println("❌ Phiên " + auctionId + " bị hủy bởi user " + userId);
+            }
+            response.put("success", true);
+            response.put("message", "Đã hủy. Sản phẩm sẽ không được bàn giao.");
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Lỗi server khi hủy thanh toán: " + e.getMessage());
         }
         return response;
     }

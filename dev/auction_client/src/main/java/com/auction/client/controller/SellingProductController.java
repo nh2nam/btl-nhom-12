@@ -9,17 +9,22 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.geometry.Side;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 
-import java.io.ByteArrayInputStream;
 import java.lang.reflect.Type;
-import java.util.Base64;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +36,7 @@ public class SellingProductController {
 
     @FXML private Label lblUsername;
     @FXML private ImageView imgProduct;
+    @FXML private HBox hboxThumbnails;
     @FXML private Label lblProductInfo;
     @FXML private Label lblProductName;
     @FXML private Label lblStartingPrice;
@@ -41,6 +47,10 @@ public class SellingProductController {
     @FXML private Button btnConfirm;
     @FXML private Text priceCheck;
     @FXML private VBox vboxBidHistory;
+
+    // Danh sách URL ảnh của sản phẩm đang xem
+    private final List<String> productImageUrls = new ArrayList<>();
+    private int currentImageIndex = 0;
 
     private final String GRAY_STYLE  = "-fx-background-color: #888888; -fx-text-fill: black; -fx-border-color: black; -fx-font-weight: bold; -fx-font-size: 16px; -fx-background-radius: 10; -fx-border-radius: 10;";
     private final String GREEN_STYLE = "-fx-background-color: #28a745; -fx-text-fill: white; -fx-border-color: black; -fx-font-weight: bold; -fx-font-size: 16px; -fx-background-radius: 10; -fx-border-radius: 10;";
@@ -98,24 +108,104 @@ public class SellingProductController {
             description.setText(desc);
             lblProductInfo.setText("📌 Phân loại: " + category + "\n\n📝 Mô tả: " + desc);
 
-            // --- XỬ LÝ ẢNH MỚI (CLOUDINARY LINK) ---
-            String path = (String) selectedAuction.get("itemImagePath");
-            try {
-                if (path != null && !path.trim().isEmpty() && path.startsWith("http")) {
-                    // Cờ 'true' giúp tải ảnh ngầm, không làm đơ giao diện khi vào xem chi tiết
-                    imgProduct.setImage(new Image(path, true));
-                } else {
-                    // Tùy chọn: Set ảnh mặc định nếu sản phẩm không có link hợp lệ
+            // --- XỬ LÝ GALLERY ẢNH (hỗ trợ nhiều ảnh, phân cách bởi dấu phẩy) ---
+            String rawPath = (String) selectedAuction.get("itemImagePath");
+            productImageUrls.clear();
+            currentImageIndex = 0;
+
+            if (rawPath != null && !rawPath.trim().isEmpty()) {
+                String[] parts = rawPath.split(",");
+                for (String p : parts) {
+                    String url = p.trim();
+                    if (!url.isEmpty()) {
+                        productImageUrls.add(url);
+                    }
                 }
-            } catch (Exception e) {
-                System.err.println("Lỗi tải ảnh từ mạng (Selling): " + e.getMessage());
             }
+
+            // Hiển thị ảnh chính (ảnh đầu tiên)
+            showImageAt(0);
+            // Xây dựng thanh thumbnail
+            buildThumbnailBar();
 
             Object idObj = selectedAuction.get("id");
             this.currentAuctionId = (idObj instanceof Number) ? ((Number) idObj).intValue() : -1;
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Gallery ảnh sản phẩm
+    // -------------------------------------------------------------------------
+
+    /** Hiển thị ảnh tại vị trí index lên imgProduct chính */
+    private void showImageAt(int index) {
+        if (productImageUrls.isEmpty()) return;
+        if (index < 0 || index >= productImageUrls.size()) return;
+        currentImageIndex = index;
+        String url = productImageUrls.get(index);
+        try {
+            if (url.startsWith("http")) {
+                imgProduct.setImage(new Image(url, true));
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi tải ảnh (Selling gallery): " + e.getMessage());
+        }
+        // Làm nổi bật thumbnail đang chọn
+        highlightThumbnail(index);
+    }
+
+    /** Xây dựng thanh thumbnail bên dưới ảnh chính */
+    private void buildThumbnailBar() {
+        if (hboxThumbnails == null) return;
+        hboxThumbnails.getChildren().clear();
+
+        // Không hiện thumbnail nếu chỉ có 1 ảnh
+        if (productImageUrls.size() <= 1) return;
+
+        for (int i = 0; i < productImageUrls.size(); i++) {
+            final int idx = i;
+            String url = productImageUrls.get(i);
+
+            ImageView thumb = new ImageView();
+            thumb.setFitWidth(90);
+            thumb.setFitHeight(70);
+            thumb.setPreserveRatio(true);
+            try {
+                if (url.startsWith("http")) {
+                    thumb.setImage(new Image(url, 90, 70, true, true, true));
+                }
+            } catch (Exception ignored) {}
+
+            Rectangle clip = new Rectangle(90, 70);
+            clip.setArcWidth(6);
+            clip.setArcHeight(6);
+            thumb.setClip(clip);
+
+            StackPane cell = new StackPane(thumb);
+            cell.setPrefSize(96, 76);
+            cell.setMaxSize(96, 76);
+            cell.setStyle(idx == currentImageIndex
+                    ? "-fx-background-color: #ffffff; -fx-background-radius: 8; -fx-padding: 3; -fx-cursor: hand;"
+                    : "-fx-background-color: #444; -fx-background-radius: 8; -fx-padding: 3; -fx-cursor: hand;");
+
+            cell.setOnMouseClicked(e -> {
+                showImageAt(idx);
+            });
+            cell.setId("thumb_" + i);
+            hboxThumbnails.getChildren().add(cell);
+        }
+    }
+
+    /** Làm nổi bật (viền trắng) thumbnail tại index đang chọn */
+    private void highlightThumbnail(int activeIndex) {
+        if (hboxThumbnails == null) return;
+        for (int i = 0; i < hboxThumbnails.getChildren().size(); i++) {
+            hboxThumbnails.getChildren().get(i).setStyle(i == activeIndex
+                    ? "-fx-background-color: #ffffff; -fx-background-radius: 8; -fx-padding: 3; -fx-cursor: hand;"
+                    : "-fx-background-color: #444; -fx-background-radius: 8; -fx-padding: 3; -fx-cursor: hand;");
         }
     }
 

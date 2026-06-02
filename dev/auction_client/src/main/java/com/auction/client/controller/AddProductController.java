@@ -9,14 +9,24 @@ import com.auction.client.network.CloudinaryUtil;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.geometry.Side;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -30,8 +40,10 @@ public class AddProductController {
     @FXML private Label      lblUsername;
     @FXML private TextField  txtDuration;
     @FXML private ComboBox<String> cbDurationUnit;
+    @FXML private HBox       hboxImagePreview;
 
-    private File selectedImageFile;
+    private static final int MAX_IMAGES = 5;
+    private final List<File> selectedImageFiles = new ArrayList<>();
 
     @FXML
     public void initialize() {
@@ -45,7 +57,12 @@ public class AddProductController {
     }
 
     @FXML
-    void handleChooseImage(ActionEvent event) {
+    void handleChooseImages(ActionEvent event) {
+        if (selectedImageFiles.size() >= MAX_IMAGES) {
+            showErrorMessage("Bạn đã chọn tối đa " + MAX_IMAGES + " ảnh!");
+            return;
+        }
+
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Chọn ảnh sản phẩm");
         fileChooser.getExtensionFilters().addAll(
@@ -53,12 +70,72 @@ public class AddProductController {
         );
 
         Stage stage = (Stage) lblImagePath.getScene().getWindow();
-        File file = fileChooser.showOpenDialog(stage);
+        List<File> files = fileChooser.showOpenMultipleDialog(stage);
 
-        if (file != null) {
-            selectedImageFile = file;
-            lblImagePath.setText(file.getName());
-            lblMessage.setText("");
+        if (files != null && !files.isEmpty()) {
+            int canAdd = MAX_IMAGES - selectedImageFiles.size();
+            List<File> toAdd = files.subList(0, Math.min(files.size(), canAdd));
+            selectedImageFiles.addAll(toAdd);
+            if (files.size() > canAdd) {
+                showErrorMessage("Chỉ thêm được " + canAdd + " ảnh nữa. Đã đạt giới hạn " + MAX_IMAGES + " ảnh.");
+            } else {
+                lblMessage.setText("");
+            }
+            refreshImagePreview();
+        }
+    }
+
+    @FXML
+    void handleClearImages(ActionEvent event) {
+        selectedImageFiles.clear();
+        refreshImagePreview();
+    }
+
+    /** Cập nhật label đếm và dải thumbnail nhỏ bên dưới nút chọn ảnh */
+    private void refreshImagePreview() {
+        int count = selectedImageFiles.size();
+        lblImagePath.setText(count == 0 ? "[Chưa có ảnh]" : count + " ảnh đã chọn");
+
+        hboxImagePreview.getChildren().clear();
+        for (int i = 0; i < selectedImageFiles.size(); i++) {
+            final int idx = i;
+            File f = selectedImageFiles.get(i);
+
+            ImageView thumb = new ImageView(new Image(f.toURI().toString(), 80, 80, true, true));
+            thumb.setFitWidth(80);
+            thumb.setFitHeight(80);
+            thumb.setPreserveRatio(true);
+
+            // Nút X để xóa từng ảnh
+            Text xBtn = new Text("✕");
+            xBtn.setFill(Color.WHITE);
+            xBtn.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+
+            StackPane badge = new StackPane(xBtn);
+            badge.setPrefSize(20, 20);
+            badge.setMaxSize(20, 20);
+            badge.setStyle("-fx-background-color: rgba(200,0,0,0.85); -fx-background-radius: 10; -fx-cursor: hand;");
+            badge.setOnMouseClicked(e -> {
+                selectedImageFiles.remove(idx);
+                refreshImagePreview();
+            });
+
+            StackPane cell = new StackPane();
+            cell.setPrefSize(90, 90);
+            cell.setMaxSize(90, 90);
+            cell.setStyle("-fx-background-color: #2d2d2d; -fx-background-radius: 6; -fx-border-color: #555; -fx-border-radius: 6;");
+
+            Rectangle clip = new Rectangle(80, 80);
+            clip.setArcWidth(6);
+            clip.setArcHeight(6);
+            thumb.setClip(clip);
+
+            cell.getChildren().add(thumb);
+            StackPane.setAlignment(badge, javafx.geometry.Pos.TOP_RIGHT);
+            StackPane.setMargin(badge, new Insets(2, 2, 0, 0));
+            cell.getChildren().add(badge);
+
+            hboxImagePreview.getChildren().add(cell);
         }
     }
 
@@ -109,21 +186,24 @@ public class AddProductController {
             return;
         }
 
-        // --- ĐOẠN CODE XỬ LÝ ẢNH MỚI (CLOUDINARY) ---
-        String imgPath = "";
-        if (selectedImageFile != null) {
-            showErrorMessage("Đang tải ảnh lên Cloud, vui lòng đợi..."); // Báo hiệu cho User
+        // --- ĐOẠN CODE XỬ LÝ NHIỀU ẢNH (CLOUDINARY) ---
+        List<String> uploadedUrls = new ArrayList<>();
+        if (!selectedImageFiles.isEmpty()) {
+            showErrorMessage("Đang tải " + selectedImageFiles.size() + " ảnh lên Cloud, vui lòng đợi...");
 
-            // Đẩy thẳng file ảnh lên Cloudinary và lấy đường link về
-            String uploadedUrl = CloudinaryUtil.uploadImage(selectedImageFile);
-
-            if (uploadedUrl != null && !uploadedUrl.isEmpty()) {
-                imgPath = uploadedUrl; // Gắn Link ảnh vào gói dữ liệu
-            } else {
-                showErrorMessage("Lỗi tải ảnh lên Cloud! Vui lòng thử lại.");
-                return; // Dừng việc gửi lên Server nếu tải ảnh hỏng
+            for (File imgFile : selectedImageFiles) {
+                String uploadedUrl = CloudinaryUtil.uploadImage(imgFile);
+                if (uploadedUrl != null && !uploadedUrl.isEmpty()) {
+                    uploadedUrls.add(uploadedUrl);
+                } else {
+                    showErrorMessage("Lỗi tải ảnh '" + imgFile.getName() + "' lên Cloud! Vui lòng thử lại.");
+                    return;
+                }
             }
         }
+
+        // Nối các URL bằng dấu phẩy để lưu vào 1 trường imagePath
+        String imgPath = String.join(",", uploadedUrls);
 
         // Đóng gói dữ liệu gửi lên Server
         Map<String, Object> data = new HashMap<>();
@@ -163,7 +243,8 @@ public class AddProductController {
         txtPrice.clear();
         txtDesc.clear();
         lblImagePath.setText("[Chưa có ảnh]");
-        selectedImageFile = null;
+        selectedImageFiles.clear();
+        hboxImagePreview.getChildren().clear();
         txtDuration.clear();
     }
 

@@ -9,12 +9,15 @@ public class Auction extends Entity {
     private int itemId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private String status; // Trạng thái: "OPEN", "RUNNING", "FINISHED"
+    private String status; // Trạng thái: "OPEN", "RUNNING", "FINISHED", "PENDING_PAYMENT", "CANCELLED"
 
     // Biến phụ trợ cho logic đấu giá
     private double currentHighestBid;
     private int currentWinnerId;
     private int version;
+
+    // Thời hạn thanh toán (chỉ có giá trị khi status = PENDING_PAYMENT)
+    private LocalDateTime paymentDeadline;
 
     // ĐÂY RỒI: Danh sách lưu lại lịch sử đặt giá
     private List<BidTransaction> bidHistory;
@@ -70,4 +73,7 @@ public class Auction extends Entity {
     public List<Bidder> getAutoBidders() {
         return autoBidders;
     }
+
+    public LocalDateTime getPaymentDeadline() { return paymentDeadline; }
+    public void setPaymentDeadline(LocalDateTime paymentDeadline) { this.paymentDeadline = paymentDeadline; }
 }

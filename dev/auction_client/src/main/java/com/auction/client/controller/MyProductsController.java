@@ -10,6 +10,10 @@ import com.google.gson.reflect.TypeToken;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
@@ -22,9 +26,16 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.lang.reflect.Type;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 public class MyProductsController {
 
@@ -193,18 +204,27 @@ public class MyProductsController {
     private VBox createCard(Map<String, Object> auction, String type) {
         boolean finished = type.equals("sold") || type.equals("bidDone");
         boolean isWinner = Boolean.TRUE.equals(auction.get("isWinner"));
+        String status    = (String) auction.getOrDefault("status", "");
 
         String itemName = (String) auction.getOrDefault("itemName", "Sản phẩm");
         double bid      = auction.get("currentHighestBid") instanceof Number
                 ? ((Number) auction.get("currentHighestBid")).doubleValue() : 0;
         String endTime  = (String) auction.getOrDefault("endTime", "");
 
+        // Badge màu PENDING_PAYMENT cho winner trong tab bidDone
+        boolean isPendingPayment = "PENDING_PAYMENT".equals(status) && isWinner;
+        boolean isCancelled      = "CANCELLED".equals(status);
+
         // Màu accent theo loại tab
         String accent;
-        switch (type) {
-            case "selling": accent = "#CC0000"; break;
-            case "bidding": accent = "#4CAF50"; break;
-            default:        accent = "#333";    break;
+        if (isPendingPayment) {
+            accent = "#FF9800";
+        } else {
+            switch (type) {
+                case "selling": accent = "#CC0000"; break;
+                case "bidding": accent = "#4CAF50"; break;
+                default:        accent = "#333";    break;
+            }
         }
 
         // ── Root card ──
@@ -214,8 +234,8 @@ public class MyProductsController {
             "-fx-background-color: #161616;" +
             "-fx-background-radius: 12;" +
             "-fx-border-radius: 12;" +
-            "-fx-border-color: #222;" +
-            "-fx-border-width: 1;" +
+            "-fx-border-color: " + (isPendingPayment ? "#FF9800" : "#222") + ";" +
+            "-fx-border-width: " + (isPendingPayment ? "2" : "1") + ";" +
             "-fx-cursor: hand;" +
             "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 4);"
         );
@@ -231,17 +251,20 @@ public class MyProductsController {
         imgView.setPreserveRatio(false);
         imgView.setStyle("-fx-background-radius: 12 12 0 0;");
 
-        String imgPath = (String) auction.get("itemImagePath");
+        String rawImgPath = (String) auction.get("itemImagePath");
+        String imgPath = (rawImgPath != null && !rawImgPath.trim().isEmpty())
+                ? rawImgPath.split(",")[0].trim()
+                : null;
         if (imgPath != null && imgPath.startsWith("http")) {
             try {
-                Image img = imageCache.computeIfAbsent(imgPath, k -> new Image(k, true));
+                final String cacheKey = imgPath;
+                Image img = imageCache.computeIfAbsent(cacheKey, k -> new Image(k, true));
                 imgView.setImage(img);
             } catch (Exception ignored) {}
         }
 
         // Badge trạng thái góc trên trái
-        Label badge = buildBadge(type, isWinner, finished);
-
+        Label badge = buildBadge(type, isWinner, finished, status);
         StackPane.setAlignment(badge, javafx.geometry.Pos.TOP_LEFT);
         imgStack.getChildren().addAll(imgView, badge);
 
@@ -271,7 +294,7 @@ public class MyProductsController {
         // Thời gian
         HBox timeRow = new HBox(6);
         timeRow.setAlignment(Pos.CENTER_LEFT);
-        Label clockIcon = new Label(finished ? "🕐" : "⏳");
+        Label clockIcon = new Label(finished || isPendingPayment ? "🕐" : "⏳");
         clockIcon.setStyle("-fx-font-size: 12px;");
         Label timeLbl = new Label(endTime);
         timeLbl.setStyle("-fx-text-fill: #444; -fx-font-size: 12px;");
@@ -279,8 +302,19 @@ public class MyProductsController {
 
         info.getChildren().addAll(nameLabel, priceRow, timeRow);
 
-        // Kết quả nếu đã kết thúc
-        if (finished) {
+        // Nếu đang chờ thanh toán (winner) → hiện nhãn nhắc nhở
+        if (isPendingPayment) {
+            javafx.scene.layout.Region divider = new javafx.scene.layout.Region();
+            divider.setPrefHeight(1);
+            divider.setStyle("-fx-background-color: #2a2a2a;");
+
+            Label pendingLbl = new Label("⏳  Đang chờ thanh toán\nNhấp vào để thanh toán / hủy");
+            pendingLbl.setStyle("-fx-text-fill: #FF9800; -fx-font-size: 12px; -fx-font-weight: bold;");
+            pendingLbl.setWrapText(true);
+            info.getChildren().addAll(divider, pendingLbl);
+        }
+        // Kết quả nếu đã kết thúc bình thường
+        else if (finished) {
             javafx.scene.layout.Region divider = new javafx.scene.layout.Region();
             divider.setPrefHeight(1);
             divider.setStyle("-fx-background-color: #222;");
@@ -289,7 +323,11 @@ public class MyProductsController {
             resultRow.setAlignment(Pos.CENTER);
             resultRow.setStyle("-fx-padding: 10 0 0 0;");
 
-            if (isWinner) {
+            if ("CANCELLED".equals(status) && isWinner) {
+                Label cancelled = new Label("⛔  Đã hủy thanh toán");
+                cancelled.setStyle("-fx-text-fill: #888; -fx-font-size: 13px;");
+                resultRow.getChildren().add(cancelled);
+            } else if (isWinner) {
                 Label win = new Label("🏆  Đã thắng đấu giá");
                 win.setStyle("-fx-text-fill: #FFD700; -fx-font-size: 13px; -fx-font-weight: bold;");
                 resultRow.getChildren().add(win);
@@ -312,8 +350,8 @@ public class MyProductsController {
             "-fx-background-color: #161616;" +
             "-fx-background-radius: 12;" +
             "-fx-border-radius: 12;" +
-            "-fx-border-color: #222;" +
-            "-fx-border-width: 1;" +
+            "-fx-border-color: " + (isPendingPayment ? "#FF9800" : "#222") + ";" +
+            "-fx-border-width: " + (isPendingPayment ? "2" : "1") + ";" +
             "-fx-cursor: hand;" +
             "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 4);";
         String hoverStyle =
@@ -321,37 +359,50 @@ public class MyProductsController {
             "-fx-background-radius: 12;" +
             "-fx-border-radius: 12;" +
             "-fx-border-color: " + accent + ";" +
-            "-fx-border-width: 1;" +
+            "-fx-border-width: " + (isPendingPayment ? "2" : "1") + ";" +
             "-fx-cursor: hand;" +
-            "-fx-effect: dropshadow(gaussian, " + accent + "55, 16, 0, 0, 0);";
+            "-fx-effect: dropshadow(gaussian, " + accent + "88, 18, 0, 0, 0);";
 
         card.setOnMouseEntered(e -> card.setStyle(hoverStyle));
         card.setOnMouseExited(e  -> card.setStyle(baseStyle));
 
         // ── Click ──
         card.setOnMouseClicked(e -> {
-            Map<String, Object> full = new HashMap<>(auction);
-            full.put("name", itemName);
-            AppData.selectedAuction = full;
-            Main.changeScene("/view/selling_product.fxml");
+            if (isPendingPayment) {
+                // Mở dialog thanh toán với đếm ngược
+                openPaymentDialog(auction);
+            } else {
+                Map<String, Object> full = new HashMap<>(auction);
+                full.put("name", itemName);
+                AppData.selectedAuction = full;
+                Main.changeScene("/view/selling_product.fxml");
+            }
         });
 
         return card;
     }
 
-    private Label buildBadge(String type, boolean isWinner, boolean finished) {
+    private Label buildBadge(String type, boolean isWinner, boolean finished, String status) {
         String text, color;
-        switch (type) {
-            case "selling":
-                text = "  ĐANG BÁN  "; color = "#CC0000"; break;
-            case "bidding":
-                text = "  ĐANG ĐẤU GIÁ  "; color = "#4CAF50"; break;
-            case "sold":
-                text = "  ĐÃ BÁN  "; color = "#2196F3"; break;
-            default:
-                text = isWinner ? "  🏆 THẮNG  " : "  ❌ THUA  ";
-                color = isWinner ? "#FFD700" : "#CC0000";
-                break;
+
+        // Ưu tiên hiển thị trạng thái đặc biệt trước
+        if ("PENDING_PAYMENT".equals(status) && isWinner) {
+            text = "  ⏳ CHỜ THANH TOÁN  "; color = "#FF9800"; 
+        } else if ("CANCELLED".equals(status) && isWinner) {
+            text = "  ⛔ ĐÃ HỦY  "; color = "#555";
+        } else {
+            switch (type) {
+                case "selling":
+                    text = "  ĐANG BÁN  "; color = "#CC0000"; break;
+                case "bidding":
+                    text = "  ĐANG ĐẤU GIÁ  "; color = "#4CAF50"; break;
+                case "sold":
+                    text = "  ĐÃ BÁN  "; color = "#2196F3"; break;
+                default:
+                    text = isWinner ? "  🏆 THẮNG  " : "  ❌ THUA  ";
+                    color = isWinner ? "#FFD700" : "#CC0000";
+                    break;
+            }
         }
         Label badge = new Label(text);
         badge.setStyle(
@@ -364,6 +415,207 @@ public class MyProductsController {
         );
         return badge;
     }
+
+    // ─── Payment dialog ───────────────────────────────────────────────────────
+
+    /**
+     * Mở dialog đếm ngược 10 phút với nút Thanh Toán và Hủy.
+     */
+    private void openPaymentDialog(Map<String, Object> auction) {
+        int auctionId   = ((Number) auction.get("auctionId")).intValue();
+        String itemName = (String) auction.getOrDefault("itemName", "Sản phẩm");
+        double bid      = auction.get("currentHighestBid") instanceof Number
+                ? ((Number) auction.get("currentHighestBid")).doubleValue() : 0;
+        String deadlineStr = (String) auction.get("paymentDeadline");
+
+        // Tính số giây còn lại
+        long secondsLeft = 600; // fallback 10 phút
+        if (deadlineStr != null && !deadlineStr.isEmpty()) {
+            try {
+                LocalDateTime deadline = LocalDateTime.parse(
+                        deadlineStr.trim(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                secondsLeft = ChronoUnit.SECONDS.between(LocalDateTime.now(), deadline);
+                if (secondsLeft < 0) secondsLeft = 0;
+            } catch (Exception ignored) {}
+        }
+        final long[] remaining = {secondsLeft};
+
+        // ── Xây dựng nội dung dialog ──
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Thanh toán sản phẩm");
+        dialog.setHeaderText(null);
+        dialog.getDialogPane().setStyle("-fx-background-color: #1a1a1a;");
+
+        VBox content = new VBox(20);
+        content.setStyle("-fx-padding: 30; -fx-background-color: #1a1a1a;");
+        content.setAlignment(Pos.CENTER);
+        content.setPrefWidth(480);
+
+        // Ảnh sản phẩm
+        String rawImg = (String) auction.get("itemImagePath");
+        if (rawImg != null && !rawImg.trim().isEmpty()) {
+            String firstUrl = rawImg.split(",")[0].trim();
+            if (firstUrl.startsWith("http")) {
+                try {
+                    ImageView imgView = new ImageView(new Image(firstUrl, 440, 220, true, true, true));
+                    imgView.setFitWidth(440);
+                    imgView.setFitHeight(220);
+                    imgView.setPreserveRatio(true);
+                    imgView.setStyle("-fx-background-radius: 10;");
+                    content.getChildren().add(imgView);
+                } catch (Exception ignored) {}
+            }
+        }
+
+        // Tên sản phẩm
+        Label nameLbl = new Label(itemName);
+        nameLbl.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;");
+        nameLbl.setWrapText(true);
+
+        // Giá
+        Label priceLbl = new Label(String.format("Số tiền cần thanh toán:  %,.0f ₫", bid));
+        priceLbl.setStyle("-fx-text-fill: #ff4444; -fx-font-size: 18px; -fx-font-weight: bold;");
+
+        // Đếm ngược
+        Label countdownLbl = new Label();
+        countdownLbl.setStyle("-fx-text-fill: #FF9800; -fx-font-size: 22px; -fx-font-weight: bold;");
+        updateCountdownLabel(countdownLbl, remaining[0]);
+
+        Label warnLbl = new Label("⚠️  Chưa thanh toán trong thời hạn sẽ tự động hủy");
+        warnLbl.setStyle("-fx-text-fill: #888; -fx-font-size: 12px;");
+
+        // Hai nút hành động
+        Button btnPay    = new Button("💳  THANH TOÁN NGAY");
+        Button btnCancel = new Button("✕  Hủy bỏ");
+
+        btnPay.setStyle(
+            "-fx-background-color: #1976D2; -fx-text-fill: white;" +
+            "-fx-font-size: 16px; -fx-font-weight: bold;" +
+            "-fx-background-radius: 8; -fx-cursor: hand;" +
+            "-fx-padding: 14 32 14 32;");
+        btnCancel.setStyle(
+            "-fx-background-color: #880000; -fx-text-fill: white;" +
+            "-fx-font-size: 14px; -fx-font-weight: bold;" +
+            "-fx-background-radius: 8; -fx-cursor: hand;" +
+            "-fx-padding: 12 24 12 24;");
+
+        HBox btnRow = new HBox(20, btnPay, btnCancel);
+        btnRow.setAlignment(Pos.CENTER);
+
+        content.getChildren().addAll(nameLbl, priceLbl, countdownLbl, warnLbl, btnRow);
+        dialog.getDialogPane().setContent(content);
+        // Xóa nút mặc định của dialog
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().lookupButton(ButtonType.CLOSE).setVisible(false);
+
+        // ── Timer đếm ngược ──
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        final boolean[] dialogClosed = {false};
+
+        ScheduledFuture<?>[] timerRef = new ScheduledFuture<?>[1];
+        timerRef[0] = scheduler.scheduleAtFixedRate(() -> {
+            remaining[0]--;
+            Platform.runLater(() -> updateCountdownLabel(countdownLbl, remaining[0]));
+            if (remaining[0] <= 0) {
+                timerRef[0].cancel(false);
+                scheduler.shutdown();
+                Platform.runLater(() -> {
+                    if (!dialogClosed[0]) {
+                        dialogClosed[0] = true;
+                        dialog.close();
+                        showAlert(Alert.AlertType.WARNING, "Hết hạn thanh toán",
+                                "Bạn đã không thanh toán trong thời hạn.\nSản phẩm đã bị hủy.");
+                        loadMyProducts(); // Reload để cập nhật status
+                    }
+                });
+            }
+        }, 1, 1, TimeUnit.SECONDS);
+
+        // ── Nút Thanh Toán ──
+        btnPay.setOnAction(e -> {
+            timerRef[0].cancel(false);
+            scheduler.shutdown();
+            dialogClosed[0] = true;
+            dialog.close();
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("auctionId", auctionId);
+            data.put("userId", UserSession.getInstance().getUserId());
+            Response response = ServerConnection.getInstance().send("CONFIRM_PAYMENT", data);
+
+            if (response.isSuccess()) {
+                showAlert(Alert.AlertType.INFORMATION, "Thanh toán thành công", response.getMessage());
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Lỗi", response.getMessage());
+            }
+            loadMyProducts();
+        });
+
+        // ── Nút Hủy ──
+        btnCancel.setOnAction(e -> {
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Xác nhận hủy");
+            confirm.setHeaderText(null);
+            confirm.setContentText("Bạn có chắc muốn hủy?\nSản phẩm sẽ không được bàn giao.");
+            confirm.showAndWait().ifPresent(btn -> {
+                if (btn == ButtonType.OK) {
+                    timerRef[0].cancel(false);
+                    scheduler.shutdown();
+                    dialogClosed[0] = true;
+                    dialog.close();
+
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("auctionId", auctionId);
+                    data.put("userId", UserSession.getInstance().getUserId());
+                    Response response = ServerConnection.getInstance().send("CANCEL_PAYMENT", data);
+
+                    if (response.isSuccess()) {
+                        showAlert(Alert.AlertType.INFORMATION, "Đã hủy", response.getMessage());
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Lỗi", response.getMessage());
+                    }
+                    loadMyProducts();
+                }
+            });
+        });
+
+        // Dọn dẹp timer khi dialog bị đóng bằng cách khác
+        dialog.setOnHidden(ev -> {
+            dialogClosed[0] = true;
+            if (!scheduler.isShutdown()) scheduler.shutdownNow();
+        });
+
+        dialog.showAndWait();
+    }
+
+    /** Cập nhật label đếm ngược từ số giây */
+    private void updateCountdownLabel(Label lbl, long secondsLeft) {
+        if (secondsLeft <= 0) {
+            lbl.setText("⏰  00:00  —  Đã hết hạn!");
+            lbl.setStyle("-fx-text-fill: #CC0000; -fx-font-size: 22px; -fx-font-weight: bold;");
+            return;
+        }
+        long mins = secondsLeft / 60;
+        long secs = secondsLeft % 60;
+        String timeStr = String.format("⏳  %02d:%02d  còn lại", mins, secs);
+        lbl.setText(timeStr);
+        // Đổi màu sang đỏ khi còn dưới 2 phút
+        if (secondsLeft <= 120) {
+            lbl.setStyle("-fx-text-fill: #CC0000; -fx-font-size: 22px; -fx-font-weight: bold;");
+        } else {
+            lbl.setStyle("-fx-text-fill: #FF9800; -fx-font-size: 22px; -fx-font-weight: bold;");
+        }
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String message) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    // ─── Navigation ───────────────────────────────────────────────────────────
 
     @FXML
     private void goBack() {

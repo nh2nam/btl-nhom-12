@@ -99,6 +99,9 @@
                         <VBox alignment="CENTER"
                               style="-fx-background-color: #2a2a2a; -fx-background-radius: 10; -fx-padding: 20;">
                             <ImageView fx:id="imgProduct" fitWidth="700.0" preserveRatio="true" />
+                            <!-- Thumbnails điều hướng ảnh -->
+                            <HBox fx:id="hboxThumbnails" alignment="CENTER" spacing="10.0"
+                                  style="-fx-padding: 15 0 0 0;" />
                         </VBox>
 
                         <!-- Chi tiết tài sản -->

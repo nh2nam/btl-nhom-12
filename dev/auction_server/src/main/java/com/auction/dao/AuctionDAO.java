@@ -13,23 +13,19 @@ public class AuctionDAO {
 
     // 1. Lưu phiên đấu giá mới vào Database
     public void insertAuction(Auction auction) {
-        String sql = "INSERT INTO auctions (seller_id, item_id, start_time, end_time, status, current_highest_bid, current_winner_id, version) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO auctions (seller_id, item_id, start_time, end_time, status, current_highest_bid, current_winner_id, version, payment_deadline) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setInt(1, auction.getSellerId());
             stmt.setInt(2, auction.getItemId());
-
-            // Chuyển đổi LocalDateTime của Java sang Timestamp của SQL
             stmt.setTimestamp(3, Timestamp.valueOf(auction.getStartTime()));
             stmt.setTimestamp(4, Timestamp.valueOf(auction.getEndTime()));
-
             stmt.setString(5, auction.getStatus());
             stmt.setDouble(6, auction.getCurrentHighestBid());
 
-            // Xử lý cạm bẫy Khóa ngoại (Tránh lỗi lưu số -1)
             if (auction.getCurrentWinnerId() == -1) {
                 stmt.setNull(7, Types.INTEGER);
             } else {
@@ -38,9 +34,14 @@ public class AuctionDAO {
 
             stmt.setInt(8, auction.getVersion());
 
+            if (auction.getPaymentDeadline() != null) {
+                stmt.setTimestamp(9, Timestamp.valueOf(auction.getPaymentDeadline()));
+            } else {
+                stmt.setNull(9, Types.TIMESTAMP);
+            }
+
             stmt.executeUpdate();
 
-            // Lấy ID tự động tạo và gán lại cho Object
             try (ResultSet rs = stmt.getGeneratedKeys()) {
                 if (rs.next()) {
                     auction.setId(rs.getInt(1));
@@ -56,7 +57,7 @@ public class AuctionDAO {
     // 2. Load tất cả các phiên đấu giá lên RAM
     public List<Auction> getAllAuctions() {
         List<Auction> auctionList = new ArrayList<>();
-        String sql = "SELECT id, seller_id, item_id, start_time, end_time, status, current_highest_bid, current_winner_id, version FROM auctions";
+        String sql = "SELECT id, seller_id, item_id, start_time, end_time, status, current_highest_bid, current_winner_id, version, payment_deadline FROM auctions";
 
         try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement();
@@ -70,17 +71,20 @@ public class AuctionDAO {
                 Timestamp end = rs.getTimestamp("end_time");
                 double highestBid = rs.getDouble("current_highest_bid");
 
-                // Khởi tạo Object
                 Auction auction = new Auction(id, sellerId, itemId, start.toLocalDateTime(), end.toLocalDateTime(), highestBid);
                 auction.setStatus(rs.getString("status"));
                 auction.setVersion(rs.getInt("version"));
 
-                // Xử lý đọc dữ liệu NULL thành -1
                 int winnerId = rs.getInt("current_winner_id");
                 if (rs.wasNull()) {
                     auction.setCurrentWinnerId(-1);
                 } else {
                     auction.setCurrentWinnerId(winnerId);
+                }
+
+                Timestamp paymentDeadlineTs = rs.getTimestamp("payment_deadline");
+                if (paymentDeadlineTs != null) {
+                    auction.setPaymentDeadline(paymentDeadlineTs.toLocalDateTime());
                 }
 
                 auctionList.add(auction);
@@ -91,9 +95,9 @@ public class AuctionDAO {
         return auctionList;
     }
 
-    // 3. (Bổ sung thêm) Cập nhật trạng thái và giá khi có người đặt lệnh
+    // 3. Cập nhật trạng thái và giá khi có người đặt lệnh
     public void updateAuction(Auction auction) {
-        String sql = "UPDATE auctions SET end_time = ?, status = ?, current_highest_bid = ?, current_winner_id = ?, version = ? WHERE id = ?";
+        String sql = "UPDATE auctions SET end_time = ?, status = ?, current_highest_bid = ?, current_winner_id = ?, version = ?, payment_deadline = ? WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -108,7 +112,14 @@ public class AuctionDAO {
             }
 
             stmt.setInt(5, auction.getVersion());
-            stmt.setInt(6, auction.getId());
+
+            if (auction.getPaymentDeadline() != null) {
+                stmt.setTimestamp(6, Timestamp.valueOf(auction.getPaymentDeadline()));
+            } else {
+                stmt.setNull(6, Types.TIMESTAMP);
+            }
+
+            stmt.setInt(7, auction.getId());
 
             stmt.executeUpdate();
         } catch (SQLException e) {

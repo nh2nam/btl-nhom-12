@@ -40,10 +40,27 @@ public class DatabaseConnection {
 
     public static Connection getConnection() {
         try {
-            // Xóa cái if (connection == null) cũ đi, bắt buộc luôn tạo mới!
-            return DriverManager.getConnection(URL, USER, DB_SECRET);
+            Connection conn = DriverManager.getConnection(URL, USER, DB_SECRET);
+            ensurePaymentDeadlineColumn(conn);
+            return conn;
         } catch (SQLException e) {
             throw new IllegalStateException("❌ Lỗi kết nối Database!", e);
+        }
+    }
+
+    /**
+     * Tự động thêm cột payment_deadline vào bảng auctions nếu chưa có.
+     */
+    private static void ensurePaymentDeadlineColumn(Connection conn) {
+        try (java.sql.ResultSet rs = conn.getMetaData().getColumns(null, null, "auctions", "payment_deadline")) {
+            if (!rs.next()) {
+                try (java.sql.Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate("ALTER TABLE auctions ADD COLUMN payment_deadline DATETIME DEFAULT NULL");
+                    LOGGER.info("✅ Đã thêm cột 'payment_deadline' vào bảng auctions.");
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.warning("⚠️ Không thể kiểm tra/thêm cột payment_deadline: " + e.getMessage());
         }
     }
 

@@ -137,10 +137,30 @@ public class AuctionServiceImpl implements IAuctionService {
         LocalDateTime now = LocalDateTime.now();
         for (Auction auction : auctionManager.getAllAuctions()) {
             synchronized (auction) {
+                // 1. Phiên RUNNING hết giờ → chuyển sang PENDING_PAYMENT (nếu có winner) hoặc FINISHED (nếu không ai đặt)
                 if ("RUNNING".equals(auction.getStatus()) && now.isAfter(auction.getEndTime())) {
-                    auction.setStatus("FINISHED");
+                    if (auction.getCurrentWinnerId() != -1) {
+                        // Có người thắng → chờ thanh toán 10 phút
+                        auction.setStatus("PENDING_PAYMENT");
+                        auction.setPaymentDeadline(now.plusMinutes(10));
+                        System.out.println("\n🔔 PENDING: Phiên " + auction.getId()
+                                + " chờ thanh toán từ user " + auction.getCurrentWinnerId()
+                                + " đến " + auction.getPaymentDeadline());
+                    } else {
+                        // Không ai đặt giá → kết thúc luôn
+                        auction.setStatus("FINISHED");
+                        System.out.println("\n🔔 FINISHED (no bids): Phiên " + auction.getId());
+                    }
                     auctionManager.updateAuctionInDB(auction);
-                    System.out.println("\n🔔 KẾT THÚC: Phiên " + auction.getId() + " đã đóng cửa!");
+                }
+
+                // 2. Phiên PENDING_PAYMENT quá hạn → hủy (CANCELLED)
+                if ("PENDING_PAYMENT".equals(auction.getStatus())
+                        && auction.getPaymentDeadline() != null
+                        && now.isAfter(auction.getPaymentDeadline())) {
+                    auction.setStatus("CANCELLED");
+                    auctionManager.updateAuctionInDB(auction);
+                    System.out.println("\n⛔ CANCELLED: Phiên " + auction.getId() + " hết hạn thanh toán.");
                 }
             }
         }
