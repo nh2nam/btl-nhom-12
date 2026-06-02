@@ -252,6 +252,7 @@ public class SellingProductController {
         listBox.setStyle("-fx-padding: 4 0 0 0;");
 
         dialogHistoryBox = listBox; // GẮN CẦU NỐI CHO OBSERVER
+        listBox.getChildren().add(new Label("⏳ Đang tải dữ liệu từ máy chủ..."));
 
         ScrollPane scrollPane = new ScrollPane(listBox);
         scrollPane.setFitToWidth(true);
@@ -391,7 +392,8 @@ public class SellingProductController {
         }
     }
 
-    private void loadBidHistory() {
+    // 1. Thêm từ khóa synchronized để các luồng xếp hàng gọi mạng, không đè gói tin lên nhau
+    private synchronized void loadBidHistory() {
         if (currentAuctionId == -1) return;
 
         Map<String, Object> data = new HashMap<>();
@@ -408,16 +410,29 @@ public class SellingProductController {
             return;
         }
 
+        // 2. Ép buộc sắp xếp lịch sử từ thấp đến cao (Chống loạn thứ tự từ Database)
+        if (history != null && !history.isEmpty()) {
+            history.sort((b1, b2) -> Double.compare(
+                    ((Number) b1.get("amount")).doubleValue(),
+                    ((Number) b2.get("amount")).doubleValue()
+            ));
+        }
+
         // Cập nhật UI trên JavaFX thread
         Platform.runLater(() -> {
+
+            // --- ⚠️ VAN MỘT CHIỀU CHỐNG GIẬT LÙI THỜI GIAN ⚠️ ---
+            int newSize = (history != null) ? history.size() : 0;
+            // Nếu số lượng lượt đặt giá mới nhỏ hơn hoặc bằng số lượng đang hiển thị ngoài màn hình chính
+            // (vboxBidHistory.getChildren().size()), chứng tỏ đây là gói tin cũ kẹt mạng -> VỨT BỎ NGAY!
+            if (vboxBidHistory != null && newSize <= vboxBidHistory.getChildren().size() && vboxBidHistory.getChildren().size() > 1) {
+                return;
+            }
 
             // --- 0. CẬP NHẬT NHÃN GIÁ MÀU ĐỎ MỚI NHẤT ---
             double highestBid = currentHighestBid;
             if (history != null && !history.isEmpty()) {
-                highestBid = history.stream()
-                        .mapToDouble(bid -> ((Number) bid.get("amount")).doubleValue())
-                        .max()
-                        .orElse(currentHighestBid);
+                highestBid = ((Number) history.get(history.size() - 1).get("amount")).doubleValue();
             }
 
             if (highestBid > currentHighestBid) {
@@ -479,7 +494,7 @@ public class SellingProductController {
                         if (amount > maxPrice) maxPrice = amount;
 
                         javafx.scene.chart.XYChart.Data<Number, Number> dp = new javafx.scene.chart.XYChart.Data<>(i + 1, amount);
-                        dp.setNode(makeDotNode(amount)); // Gọi hàm vẽ chấm xanh
+                        dp.setNode(makeDotNode(amount));
                         dialogChartSeries.getData().add(dp);
                     }
                 } else {
