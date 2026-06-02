@@ -66,6 +66,11 @@ public class SellingProductController {
     private javafx.scene.chart.NumberAxis dialogXAxis;
     private javafx.scene.chart.NumberAxis dialogYAxis;
 
+    // --- LIVE CHAT ---
+    @FXML private VBox vboxChatMessages;
+    @FXML private ScrollPane scrollPaneChat;
+    @FXML private TextField txtChatInput;
+
     @FXML
     public void initialize() {
         lblUsername.setText(UserSession.getInstance().getDisplayName());
@@ -617,7 +622,7 @@ public class SellingProductController {
                     if (message.contains("UPDATE_PRICE")) {
                         Map<String, Object> data = gson.fromJson(message, new TypeToken<Map<String, Object>>(){}.getType());
                         int id = ((Number) data.get("auctionId")).intValue();
-                        double newPrice = ((Number) data.get("newPrice")).doubleValue(); // Lấy giá mới trực tiếp từ loa thông báo
+                        double newPrice = ((Number) data.get("newPrice")).doubleValue();
 
                         if (id == currentAuctionId) {
                             // 1. NHẢY GIÁ ĐỎ LẬP TỨC TRÊN GIAO DIỆN
@@ -630,6 +635,16 @@ public class SellingProductController {
 
                             // 2. KÉO LỊCH SỬ Ở LUỒNG NGẦM (Không làm đơ màn hình)
                             loadBidHistory();
+                        }
+
+                    } else if (message.contains("NEW_CHAT_MESSAGE")) {
+                        Map<String, Object> data = gson.fromJson(message, new TypeToken<Map<String, Object>>(){}.getType());
+                        int id           = ((Number) data.get("auctionId")).intValue();
+                        String sender    = String.valueOf(data.getOrDefault("sender", "Ẩn danh"));
+                        String content   = String.valueOf(data.getOrDefault("content", ""));
+
+                        if (id == currentAuctionId) {
+                            Platform.runLater(() -> appendChatMessage(sender, content, false));
                         }
                     }
                 }
@@ -645,6 +660,78 @@ public class SellingProductController {
         try {
             if (radioSocket != null && !radioSocket.isClosed()) radioSocket.close();
         } catch (Exception ignored) {}
+    }
+
+    // -------------------------------------------------------------------------
+    // Live Chat
+    // -------------------------------------------------------------------------
+
+    /** Gửi tin nhắn chat lên server */
+    @FXML
+    private void handleSendChat() {
+        if (txtChatInput == null) return;
+        String content = txtChatInput.getText().trim();
+        if (content.isEmpty()) return;
+        if (currentAuctionId == -1) return;
+
+        txtChatInput.clear();
+
+        // Hiện ngay lên UI của người gửi (tin nhắn "của mình" — căn phải)
+        appendChatMessage(UserSession.getInstance().getDisplayName(), content, true);
+
+        // Gửi đến server trong luồng ngầm (tránh đơ UI)
+        new Thread(() -> {
+            Map<String, Object> data = new HashMap<>();
+            data.put("auctionId",  currentAuctionId);
+            data.put("senderName", UserSession.getInstance().getDisplayName());
+            data.put("content",    content);
+            ServerConnection.getInstance().send("SEND_CHAT", data);
+        }).start();
+    }
+
+    /**
+     * Thêm một bong bóng tin nhắn vào khung chat.
+     * @param sender  Tên người gửi
+     * @param content Nội dung tin nhắn
+     * @param isMine  true = tin của chính mình (căn phải, màu xanh)
+     */
+    private void appendChatMessage(String sender, String content, boolean isMine) {
+        if (vboxChatMessages == null) return;
+
+        // Label tên người gửi
+        Label lblSender = new Label(sender);
+        lblSender.setStyle("-fx-text-fill: " + (isMine ? "#4FC3F7" : "#FFD54F") + "; -fx-font-size: 11px; -fx-font-weight: bold;");
+
+        // Label nội dung
+        Label lblContent = new Label(content);
+        lblContent.setWrapText(true);
+        lblContent.setMaxWidth(300);
+        lblContent.setStyle(
+                "-fx-text-fill: white; -fx-font-size: 13px;" +
+                "-fx-background-color: " + (isMine ? "#1565C0" : "#37474F") + ";" +
+                "-fx-background-radius: 10; -fx-padding: 8 12;"
+        );
+
+        // Bong bóng gồm tên + nội dung
+        VBox bubble = new VBox(2, lblSender, lblContent);
+        bubble.setMaxWidth(320);
+
+        // HBox để căn phải/trái
+        HBox row = new HBox(bubble);
+        row.setPadding(new Insets(3, 8, 3, 8));
+        if (isMine) {
+            row.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+        } else {
+            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        }
+
+        vboxChatMessages.getChildren().add(row);
+
+        // Tự cuộn xuống cuối
+        if (scrollPaneChat != null) {
+            scrollPaneChat.layout();
+            scrollPaneChat.setVvalue(1.0);
+        }
     }
 
 

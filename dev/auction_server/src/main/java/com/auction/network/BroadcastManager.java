@@ -20,7 +20,7 @@ public class BroadcastManager {
         observers.remove(out);
     }
 
-    // 3. Hét lên cho tất cả mọi người cùng nghe!
+    // 3. Hét lên cho tất cả mọi người cùng nghe! (cập nhật giá)
     public static void broadcastPriceUpdate(int auctionId, double newPrice) {
         // Đóng gói tin nhắn dạng JSON thủ công cho nhanh
         String message = String.format("{\"action\":\"UPDATE_PRICE\", \"auctionId\":%d, \"newPrice\":%f}", auctionId, newPrice);
@@ -31,6 +31,25 @@ public class BroadcastManager {
                 out.println(message); // Đẩy dữ liệu thẳng về Client
             } catch (Exception e) {
                 observers.remove(out); // Nếu Client này đứt mạng thì xóa đi
+            }
+        }
+    }
+
+    // 4. Phát tin nhắn chat đến tất cả client đang theo dõi phiên
+    public static void broadcastChatMessage(int auctionId, String senderName, String content) {
+        // Escape dấu nháy kép trong nội dung để tránh vỡ JSON thủ công
+        String safeContent    = content.replace("\\", "\\\\").replace("\"", "\\\"");
+        String safeSenderName = senderName.replace("\\", "\\\\").replace("\"", "\\\"");
+        String message = String.format(
+                "{\"action\":\"NEW_CHAT_MESSAGE\", \"auctionId\":%d, \"sender\":\"%s\", \"content\":\"%s\"}",
+                auctionId, safeSenderName, safeContent);
+
+        System.out.println("💬 CHAT BROADCAST: " + message);
+        for (PrintWriter out : observers) {
+            try {
+                out.println(message);
+            } catch (Exception e) {
+                observers.remove(out);
             }
         }
     }

@@ -1,17 +1,5 @@
 package com.auction.network;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import com.auction.dao.BidTransactionDAO;
-import com.auction.exception.AuctionException;
-import com.auction.model.*;
-import com.auction.service.AuctionServiceImpl;
-import com.auction.service.IAuctionService;
-import com.auction.util.AuctionManager;
-import com.auction.util.ItemManager;
-import com.auction.util.PasswordUtil;
-import com.auction.util.UserManager;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -21,6 +9,24 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.auction.dao.BidTransactionDAO;
+import com.auction.exception.AuctionException;
+import com.auction.model.Admin;
+import com.auction.model.Auction;
+import com.auction.model.BidTransaction;
+import com.auction.model.Bidder;
+import com.auction.model.Item;
+import com.auction.model.Seller;
+import com.auction.model.User;
+import com.auction.service.AuctionServiceImpl;
+import com.auction.service.IAuctionService;
+import com.auction.util.AuctionManager;
+import com.auction.util.ItemManager;
+import com.auction.util.PasswordUtil;
+import com.auction.util.UserManager;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
@@ -78,6 +84,8 @@ public class ClientHandler implements Runnable {
                     responseMap = handleUpdatePhone(payload);
                 } else if ("UPDATE_EMAIL".equals(action)) {
                     responseMap = handleUpdateEmail(payload);
+                } else if ("SEND_CHAT".equals(action)) {
+                    responseMap = handleSendChat(payload);
                 } else if ("SUBSCRIBE_PRICE".equals(action)) {
                     System.out.println("🎧 Một Client vừa đăng ký nghe Đài phát thanh giá!");
                     BroadcastManager.addObserver(out);
@@ -627,6 +635,42 @@ public class ClientHandler implements Runnable {
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "Lỗi server: " + e.getMessage());
+        }
+        return response;
+    }
+
+    /** Gửi tin nhắn chat vào phòng chat của phiên đấu giá */
+    private Map<String, Object> handleSendChat(Object payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Map<String, Object> data = gson.fromJson(
+                    gson.toJson(payload), new TypeToken<Map<String, Object>>(){}.getType());
+            int    auctionId  = ((Number) data.get("auctionId")).intValue();
+            String senderName = (String) data.getOrDefault("senderName", "Ẩn danh");
+            String content    = (String) data.get("content");
+
+            if (content == null || content.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Nội dung tin nhắn không được để trống!");
+                return response;
+            }
+
+            // Kiểm tra phiên có tồn tại không
+            Auction auction = AuctionManager.getInstance().getAuction(auctionId);
+            if (auction == null) {
+                response.put("success", false);
+                response.put("message", "Phiên đấu giá không tồn tại!");
+                return response;
+            }
+
+            // Phát tin nhắn đến tất cả client đang subscribe
+            BroadcastManager.broadcastChatMessage(auctionId, senderName, content.trim());
+
+            response.put("success", true);
+            response.put("message", "Tin nhắn đã được gửi!");
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Lỗi server khi gửi tin nhắn: " + e.getMessage());
         }
         return response;
     }
