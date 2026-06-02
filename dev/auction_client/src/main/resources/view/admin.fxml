@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.text.Text?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.auction.client.controller.AdminController"
+      prefWidth="1280.0" prefHeight="800.0"
+      style="-fx-background-color: #111111;">
+
+    <!-- ══ HEADER ══ -->
+    <HBox alignment="CENTER_LEFT" spacing="20"
+          style="-fx-background-color: #000000; -fx-padding: 16 30 16 30;">
+        <Text fill="#FF3333" text="⚙  ADMIN PANEL">
+            <font><Font name="System Bold" size="26.0"/></font>
+        </Text>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label text="Hệ Thống Đấu Giá"
+               style="-fx-text-fill: #888888; -fx-font-size: 14px;"/>
+        <Button text="Đăng xuất" onAction="#handleLogout"
+                style="-fx-background-color: #cc0000; -fx-text-fill: white;
+                       -fx-font-weight: bold; -fx-font-size: 13px; -fx-cursor: hand;
+                       -fx-background-radius: 5; -fx-padding: 8 18 8 18;"/>
+    </HBox>
+
+    <!-- ══ TAB BUTTONS ══ -->
+    <HBox spacing="4"
+          style="-fx-background-color: #1a1a1a; -fx-padding: 14 30 0 30;">
+        <Button fx:id="btnUsers" text="NGƯỜI DÙNG" onAction="#showUsers"
+                style="-fx-background-color: #ffffff; -fx-text-fill: #111111;
+                       -fx-font-weight: bold; -fx-font-size: 14px; -fx-cursor: hand;
+                       -fx-background-radius: 6 6 0 0; -fx-padding: 10 28 10 28;"/>
+        <Button fx:id="btnItems" text="SẢN PHẨM" onAction="#showItems"
+                style="-fx-background-color: #2e2e2e; -fx-text-fill: #888888;
+                       -fx-font-size: 14px; -fx-cursor: hand;
+                       -fx-background-radius: 6 6 0 0; -fx-padding: 10 28 10 28;"/>
+    </HBox>
+
+    <!-- ══ CONTENT AREA ══ -->
+    <VBox VBox.vgrow="ALWAYS"
+          style="-fx-background-color: #1a1a1a; -fx-padding: 0 30 30 30;">
+
+        <!-- ── USERS PANEL ── -->
+        <VBox fx:id="panelUsers" VBox.vgrow="ALWAYS" spacing="14">
+            <padding><Insets top="20"/></padding>
+
+            <HBox alignment="CENTER_LEFT" spacing="16">
+                <Label text="Danh sách người dùng"
+                       style="-fx-text-fill: #eeeeee; -fx-font-size: 17px;
+                              -fx-font-weight: bold;"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="↻  Làm mới" onAction="#showUsers"
+                        style="-fx-background-color: #383838; -fx-text-fill: #cccccc;
+                               -fx-cursor: hand; -fx-background-radius: 5;
+                               -fx-padding: 7 16 7 16; -fx-font-size: 13px;"/>
+            </HBox>
+
+            <TableView fx:id="tblUsers" VBox.vgrow="ALWAYS"
+                       style="-fx-background-color: #1e1e1e;
+                              -fx-border-color: #2e2e2e; -fx-border-radius: 6;
+                              -fx-background-radius: 6; -fx-table-cell-border-color: #2a2a2a;">
+                <columns>
+                    <TableColumn fx:id="colUserId"      text="ID"
+                                 prefWidth="55"  minWidth="40"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colUsername"    text="Tên đăng nhập"
+                                 prefWidth="155" minWidth="100"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colDisplayName" text="Họ tên"
+                                 prefWidth="170" minWidth="120"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colEmail"       text="Email"
+                                 prefWidth="210" minWidth="140"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colPhone"       text="Điện thoại"
+                                 prefWidth="130" minWidth="90"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colRole"        text="Vai trò"
+                                 prefWidth="100" minWidth="70"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colUserAction"  text="Thao tác"
+                                 prefWidth="90"  minWidth="80"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                </columns>
+                <placeholder>
+                    <Label text="Đang tải dữ liệu..."
+                           style="-fx-text-fill: #666666; -fx-font-size: 14px;"/>
+                </placeholder>
+            </TableView>
+        </VBox>
+
+        <!-- ── ITEMS PANEL ── -->
+        <VBox fx:id="panelItems" VBox.vgrow="ALWAYS" spacing="14"
+              visible="false" managed="false">
+            <padding><Insets top="20"/></padding>
+
+            <HBox alignment="CENTER_LEFT" spacing="16">
+                <Label text="Danh sách sản phẩm"
+                       style="-fx-text-fill: #eeeeee; -fx-font-size: 17px;
+                              -fx-font-weight: bold;"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="↻  Làm mới" onAction="#showItems"
+                        style="-fx-background-color: #383838; -fx-text-fill: #cccccc;
+                               -fx-cursor: hand; -fx-background-radius: 5;
+                               -fx-padding: 7 16 7 16; -fx-font-size: 13px;"/>
+            </HBox>
+
+            <TableView fx:id="tblItems" VBox.vgrow="ALWAYS"
+                       style="-fx-background-color: #1e1e1e;
+                              -fx-border-color: #2e2e2e; -fx-border-radius: 6;
+                              -fx-background-radius: 6; -fx-table-cell-border-color: #2a2a2a;">
+                <columns>
+                    <TableColumn fx:id="colItemId"      text="ID"
+                                 prefWidth="55"  minWidth="40"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colItemName"    text="Tên sản phẩm"
+                                 prefWidth="220" minWidth="140"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colCategory"    text="Danh mục"
+                                 prefWidth="110" minWidth="80"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colStartPrice"  text="Giá khởi điểm"
+                                 prefWidth="125" minWidth="90"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colStatus"      text="Trạng thái"
+                                 prefWidth="125" minWidth="90"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colCurrentBid"  text="Giá hiện tại"
+                                 prefWidth="120" minWidth="90"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colEndTime"     text="Thời hạn"
+                                 prefWidth="165" minWidth="120"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                    <TableColumn fx:id="colItemAction"  text="Thao tác"
+                                 prefWidth="90"  minWidth="80"
+                                 style="-fx-text-fill: #cccccc; -fx-font-weight: bold;"/>
+                </columns>
+                <placeholder>
+                    <Label text="Đang tải dữ liệu..."
+                           style="-fx-text-fill: #666666; -fx-font-size: 14px;"/>
+                </placeholder>
+            </TableView>
+        </VBox>
+
+    </VBox>
+</VBox>

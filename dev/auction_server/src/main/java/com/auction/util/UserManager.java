@@ -83,4 +83,10 @@ public class UserManager {
         }
         return ok;
     }
+
+    // Xóa user khỏi RAM (DB đã được xóa riêng qua UserDAO)
+    public void removeUser(int userId) {
+        users.remove(userId);
+        LOGGER.info(() -> "🗑️ Đã xóa userId=" + userId + " khỏi RAM.");
+    }
 }

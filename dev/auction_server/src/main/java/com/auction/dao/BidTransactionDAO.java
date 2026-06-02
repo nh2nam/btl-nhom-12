@@ -65,7 +65,47 @@ public class BidTransactionDAO {
         return -1;
     }
 
-    // 4. Lấy toàn bộ lịch sử đặt giá của 1 phiên đấu giá (Load lúc khởi động)
+    // 4. Xóa tất cả bid của một phiên đấu giá
+    public void deleteByAuctionId(int auctionId) {
+        String sql = "DELETE FROM bid_transactions WHERE auction_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, auctionId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "❌ Lỗi khi xóa bid theo auctionId", e);
+        }
+    }
+
+    // 5. Xóa tất cả bid của một user
+    public void deleteByBidderId(int bidderId) {
+        String sql = "DELETE FROM bid_transactions WHERE bidder_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, bidderId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "❌ Lỗi khi xóa bid theo bidderId", e);
+        }
+    }
+
+    // 6. Lấy tất cả auctionId mà user đã tham gia bid (để xóa cascade)
+    public List<Integer> getAuctionIdsByBidderId(int bidderId) {
+        List<Integer> ids = new ArrayList<>();
+        String sql = "SELECT DISTINCT auction_id FROM bid_transactions WHERE bidder_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, bidderId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) ids.add(rs.getInt(1));
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "❌ Lỗi khi lấy auctionIds theo bidderId", e);
+        }
+        return ids;
+    }
+
+    // 7. Lấy toàn bộ lịch sử đặt giá của 1 phiên đấu giá (Load lúc khởi động)
     public List<BidTransaction> getBidsByAuctionId(int auctionId) {
         List<BidTransaction> bids = new ArrayList<>();
         String sql = "SELECT id, auction_id, bidder_id, amount, bid_time FROM bid_transactions WHERE auction_id = ? ORDER BY bid_time ASC";

@@ -64,4 +64,10 @@ public class ItemManager {
     public java.util.Collection<Item> getAllItems() {
         return items.values();
     }
+
+    // Xóa item khỏi RAM (không xóa DB — dùng khi admin đã xóa DB riêng)
+    public void removeItem(int itemId) {
+        items.remove(itemId);
+        LOGGER.info(() -> "🗑️ Đã xóa itemId=" + itemId + " khỏi RAM.");
+    }
 }

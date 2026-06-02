@@ -15,7 +15,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="800.0" prefWidth="1280.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AddProductController">
+<VBox prefHeight="800.0" prefWidth="1280.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AddProductController">
     <children>
         <HBox alignment="CENTER_LEFT" prefHeight="110.0" style="-fx-background-color: black; -fx-border-color: #333333; -fx-border-width: 0 0 1 0; -fx-padding: 20 30 20 30">
             <padding>
@@ -146,16 +146,24 @@
 
                                 <VBox spacing="10.0">
                                     <children>
-                                        <Label text="Ảnh sản phẩm:" textFill="WHITE">
+                                        <Label text="Ảnh sản phẩm (tối đa 5 ảnh):" textFill="WHITE">
                                             <font>
                                                 <Font name="System Bold" size="18.0" />
                                             </font>
                                         </Label>
                                         <HBox alignment="CENTER_LEFT" spacing="15.0">
                                             <children>
-                                                <Button mnemonicParsing="false" onAction="#handleChooseImage" style="-fx-background-color: #444444; -fx-cursor: hand;" text="Chọn ảnh..." textFill="WHITE">
+                                                <Button mnemonicParsing="false" onAction="#handleChooseImages" style="-fx-background-color: #444444; -fx-cursor: hand;" text="Chọn ảnh..." textFill="WHITE">
                                                     <padding>
                                                         <Insets bottom="10.0" left="20.0" right="20.0" top="10.0" />
+                                                    </padding>
+                                                    <font>
+                                                        <Font name="System Bold" size="14.0" />
+                                                    </font>
+                                                </Button>
+                                                <Button mnemonicParsing="false" onAction="#handleClearImages" style="-fx-background-color: #880000; -fx-cursor: hand;" text="Xóa tất cả" textFill="WHITE">
+                                                    <padding>
+                                                        <Insets bottom="10.0" left="15.0" right="15.0" top="10.0" />
                                                     </padding>
                                                     <font>
                                                         <Font name="System Bold" size="14.0" />
@@ -168,6 +176,8 @@
                                                 </Label>
                                             </children>
                                         </HBox>
+                                        <!-- Danh sách thumbnail ảnh đã chọn -->
+                                        <HBox fx:id="hboxImagePreview" spacing="10.0" style="-fx-padding: 8 0 0 0;" />
                                     </children>
                                 </VBox>
 

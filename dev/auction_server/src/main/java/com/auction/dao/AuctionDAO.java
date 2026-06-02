@@ -126,4 +126,49 @@ public class AuctionDAO {
             LOGGER.log(Level.SEVERE, "❌ Lỗi khi cập nhật Auction", e);
         }
     }
+
+    // 4. Xóa một phiên đấu giá theo id
+    public boolean deleteAuction(int auctionId) {
+        String sql = "DELETE FROM auctions WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, auctionId);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "❌ Lỗi khi xóa Auction id=" + auctionId, e);
+            return false;
+        }
+    }
+
+    // 5. Lấy tất cả auctionId của một seller (để xóa cascade khi xóa user)
+    public List<Integer> getAuctionIdsBySellerId(int sellerId) {
+        List<Integer> ids = new ArrayList<>();
+        String sql = "SELECT id FROM auctions WHERE seller_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, sellerId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) ids.add(rs.getInt(1));
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "❌ Lỗi khi lấy auction của seller", e);
+        }
+        return ids;
+    }
+
+    // 6. Lấy auctionId theo itemId
+    public List<Integer> getAuctionIdsByItemId(int itemId) {
+        List<Integer> ids = new ArrayList<>();
+        String sql = "SELECT id FROM auctions WHERE item_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, itemId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) ids.add(rs.getInt(1));
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "❌ Lỗi khi lấy auction theo itemId", e);
+        }
+        return ids;
+    }
 }

@@ -6,6 +6,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
@@ -84,6 +85,18 @@
                     </children>
                 </HBox>
 
+                <!-- THANH TÌM KIẾM -->
+                <HBox alignment="CENTER" spacing="8" HBox.hgrow="NEVER">
+                    <padding><Insets left="40.0" /></padding>
+                    <TextField fx:id="txtSearch"
+                               promptText="🔍  Tìm kiếm sản phẩm..."
+                               prefWidth="280.0" prefHeight="44.0"
+                               onKeyReleased="#handleSearch"
+                               style="-fx-background-color: #222; -fx-text-fill: white; -fx-prompt-text-fill: #777; -fx-border-color: #555; -fx-border-radius: 22; -fx-background-radius: 22; -fx-font-size: 14px; -fx-padding: 8 16;" />
+                    <Button text="✕" onAction="#handleClearSearch"
+                            prefHeight="44.0" prefWidth="44.0"
+                            style="-fx-background-color: #444; -fx-text-fill: #aaa; -fx-font-size: 16px; -fx-background-radius: 22; -fx-cursor: hand; -fx-border-color: transparent;" />
+                </HBox>
 
             </children>
         </HBox>

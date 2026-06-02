@@ -99,4 +99,10 @@ public class AuctionManager {
         auctionDAO.updateAuction(auction);
     }
 
+    // Xóa auction khỏi RAM (DB đã được xóa riêng qua AuctionDAO)
+    public void removeAuction(int auctionId) {
+        activeAuctions.remove(auctionId);
+        LOGGER.info(() -> "🗑️ Đã xóa auctionId=" + auctionId + " khỏi RAM.");
+    }
+
 }

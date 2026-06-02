@@ -54,7 +54,12 @@ public class LoginController {
                 UserSession.getInstance().setPhone((String) userInfo.getOrDefault("phone", ""));
             }
             currentUserId = UserSession.getInstance().getUserId();
-            Main.changeScene("/view/home.fxml");
+            String role = UserSession.getInstance().getRole();
+            if ("ADMIN".equals(role)) {
+                Main.changeScene("/view/admin.fxml");
+            } else {
+                Main.changeScene("/view/home.fxml");
+            }
         } else {
             lblError.setText(response.getMessage());
         }

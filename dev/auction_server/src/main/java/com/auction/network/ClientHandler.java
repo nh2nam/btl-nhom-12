@@ -12,6 +12,8 @@ import java.util.Map;
 
 import com.auction.dao.BidTransactionDAO;
 import com.auction.dao.ChatMessageDAO;
+import com.auction.dao.AuctionDAO;
+import com.auction.dao.UserDAO;
 import com.auction.exception.AuctionException;
 import com.auction.model.Admin;
 import com.auction.model.Auction;
@@ -91,6 +93,14 @@ public class ClientHandler implements Runnable {
                     responseMap = handleSendChat(payload);
                 } else if ("GET_CHAT_HISTORY".equals(action)) {
                     responseMap = handleGetChatHistory(payload);
+                } else if ("ADMIN_GET_USERS".equals(action)) {
+                    responseMap = handleAdminGetUsers(payload);
+                } else if ("ADMIN_GET_ITEMS".equals(action)) {
+                    responseMap = handleAdminGetItems(payload);
+                } else if ("ADMIN_DELETE_USER".equals(action)) {
+                    responseMap = handleAdminDeleteUser(payload);
+                } else if ("ADMIN_DELETE_ITEM".equals(action)) {
+                    responseMap = handleAdminDeleteItem(payload);
                 } else if ("SUBSCRIBE_PRICE".equals(action)) {
                     System.out.println("🎧 Một Client vừa đăng ký nghe Đài phát thanh giá!");
                     BroadcastManager.addObserver(out);
@@ -731,6 +741,161 @@ public class ClientHandler implements Runnable {
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "Lỗi server: " + e.getMessage());
+        }
+        return response;
+    }
+
+    // ─────────────────────────────────────────────
+    // ADMIN handlers
+    // ─────────────────────────────────────────────
+
+    /** Admin: lấy danh sách tất cả user */
+    private Map<String, Object> handleAdminGetUsers(Object payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (com.auction.model.User u : UserManager.getInstance().getAllUsers()) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id",          u.getId());
+                map.put("username",    u.getUsername());
+                map.put("displayName", u.getDisplayName());
+                map.put("email",       u.getEmail() != null ? u.getEmail() : "");
+                map.put("phone",       u.getPhone() != null ? u.getPhone() : "");
+                if (u instanceof com.auction.model.Seller) map.put("role", "SELLER");
+                else if (u instanceof com.auction.model.Admin) map.put("role", "ADMIN");
+                else map.put("role", "BIDDER");
+                result.add(map);
+            }
+            response.put("success", true);
+            response.put("message", "Tải danh sách user thành công!");
+            response.put("data", result);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Lỗi server: " + e.getMessage());
+        }
+        return response;
+    }
+
+    /** Admin: lấy danh sách tất cả sản phẩm kèm thông tin auction */
+    private Map<String, Object> handleAdminGetItems(Object payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (com.auction.model.Item item : ItemManager.getInstance().getAllItems()) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id",           item.getId());
+                map.put("name",         item.getName());
+                map.put("description",  item.getDescription());
+                map.put("category",     item.getCategory());
+                map.put("startingPrice", item.getStartingPrice());
+                map.put("imagePath",    item.getImagePath() != null ? item.getImagePath() : "");
+                // Tìm auction tương ứng
+                for (com.auction.model.Auction a : AuctionManager.getInstance().getAllAuctions()) {
+                    if (a.getItemId() == item.getId()) {
+                        map.put("auctionId",    a.getId());
+                        map.put("status",       a.getStatus());
+                        map.put("currentBid",   a.getCurrentHighestBid());
+                        String endTime = a.getEndTime().toString().replace("T", " ");
+                        if (endTime.contains(".")) endTime = endTime.substring(0, endTime.indexOf("."));
+                        map.put("endTime", endTime);
+                        break;
+                    }
+                }
+                result.add(map);
+            }
+            response.put("success", true);
+            response.put("message", "Tải danh sách sản phẩm thành công!");
+            response.put("data", result);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Lỗi server: " + e.getMessage());
+        }
+        return response;
+    }
+
+    /**
+     * Admin: xóa user và toàn bộ dữ liệu liên quan (cascade):
+     * bid_transactions → auctions (của seller) → chat của user → user
+     */
+    private Map<String, Object> handleAdminDeleteUser(Object payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Map<String, Object> data = gson.fromJson(
+                    gson.toJson(payload), new TypeToken<Map<String, Object>>(){}.getType());
+            int userId = ((Number) data.get("userId")).intValue();
+
+            com.auction.model.User target = UserManager.getInstance().getUser(userId);
+            if (target == null) {
+                response.put("success", false);
+                response.put("message", "Không tìm thấy user!");
+                return response;
+            }
+
+            AuctionDAO auctionDAO       = new AuctionDAO();
+            BidTransactionDAO bidDAO    = new BidTransactionDAO();
+
+            // 1. Xóa các auction mà user là seller, kèm bids và chat của từng auction đó
+            List<Integer> sellerAuctionIds = auctionDAO.getAuctionIdsBySellerId(userId);
+            for (int aId : sellerAuctionIds) {
+                bidDAO.deleteByAuctionId(aId);
+                chatMessageDAO.deleteByAuctionId(aId);
+                auctionDAO.deleteAuction(aId);
+                AuctionManager.getInstance().removeAuction(aId);
+            }
+
+            // 2. Xóa bid transactions của user (khi user là bidder trong các phiên khác)
+            bidDAO.deleteByBidderId(userId);
+
+            // 3. Xóa chat messages của user theo username
+            chatMessageDAO.deleteByUsername(target.getUsername());
+
+            // 4. Xóa user khỏi DB và RAM
+            new UserDAO().deleteUser(userId);
+            UserManager.getInstance().removeUser(userId);
+
+            response.put("success", true);
+            response.put("message", "Đã xóa user và toàn bộ dữ liệu liên quan!");
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Lỗi server khi xóa user: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return response;
+    }
+
+    /**
+     * Admin: xóa sản phẩm và toàn bộ dữ liệu liên quan (cascade):
+     * bids → chat → auction → item
+     */
+    private Map<String, Object> handleAdminDeleteItem(Object payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Map<String, Object> data = gson.fromJson(
+                    gson.toJson(payload), new TypeToken<Map<String, Object>>(){}.getType());
+            int itemId = ((Number) data.get("itemId")).intValue();
+
+            AuctionDAO auctionDAO    = new AuctionDAO();
+            BidTransactionDAO bidDAO = new BidTransactionDAO();
+
+            // 1. Tìm auction theo itemId, xóa bids và chat
+            List<Integer> auctionIds = auctionDAO.getAuctionIdsByItemId(itemId);
+            for (int aId : auctionIds) {
+                bidDAO.deleteByAuctionId(aId);
+                chatMessageDAO.deleteByAuctionId(aId);
+                auctionDAO.deleteAuction(aId);
+                AuctionManager.getInstance().removeAuction(aId);
+            }
+
+            // 2. Xóa item khỏi DB và RAM
+            new com.auction.dao.ItemDAO().deleteItem(itemId);
+            ItemManager.getInstance().removeItem(itemId);
+
+            response.put("success", true);
+            response.put("message", "Đã xóa sản phẩm và toàn bộ dữ liệu liên quan!");
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Lỗi server khi xóa sản phẩm: " + e.getMessage());
+            e.printStackTrace();
         }
         return response;
     }

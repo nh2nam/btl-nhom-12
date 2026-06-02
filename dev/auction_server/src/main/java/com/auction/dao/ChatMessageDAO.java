@@ -38,6 +38,30 @@ public class ChatMessageDAO {
         }
     }
 
+    /** Xóa toàn bộ tin nhắn chat của một phiên đấu giá */
+    public void deleteByAuctionId(int auctionId) {
+        String sql = "DELETE FROM chat_messages WHERE auction_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, auctionId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "❌ Lỗi khi xóa chat theo auctionId", e);
+        }
+    }
+
+    /** Xóa toàn bộ tin nhắn chat liên quan đến một user (theo sender_name) */
+    public void deleteByUsername(String username) {
+        String sql = "DELETE FROM chat_messages WHERE sender_name = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, username);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "❌ Lỗi khi xóa chat theo username", e);
+        }
+    }
+
     /**
      * Lấy lịch sử chat của một phiên, sắp xếp từ cũ đến mới.
      * Trả về List<Map> để ClientHandler dễ serialize thành JSON.

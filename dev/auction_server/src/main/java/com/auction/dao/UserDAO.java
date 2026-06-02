@@ -132,4 +132,19 @@ public class UserDAO {
             return false;
         }
     }
+
+    // 5. Xóa User theo id
+    public boolean deleteUser(int userId) {
+        String sql = "DELETE FROM users WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            int rows = stmt.executeUpdate();
+            LOGGER.info(() -> "🗑️ Đã xóa userId=" + userId);
+            return rows > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "❌ Lỗi khi xóa User id=" + userId, e);
+            return false;
+        }
+    }
 }
