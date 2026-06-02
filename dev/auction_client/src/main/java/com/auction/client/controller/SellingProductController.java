@@ -169,31 +169,33 @@ public class SellingProductController {
             final int idx = i;
             String url = productImageUrls.get(i);
 
+            // ImageView fill cứng 90×70, không giữ tỉ lệ → ảnh nào cũng đầy khung
             ImageView thumb = new ImageView();
             thumb.setFitWidth(90);
             thumb.setFitHeight(70);
-            thumb.setPreserveRatio(true);
+            thumb.setPreserveRatio(false);
+            thumb.setSmooth(true);
             try {
                 if (url.startsWith("http")) {
-                    thumb.setImage(new Image(url, 90, 70, true, true, true));
+                    thumb.setImage(new Image(url, 90, 70, false, true, true));
                 }
             } catch (Exception ignored) {}
 
+            // Clip bo góc
             Rectangle clip = new Rectangle(90, 70);
-            clip.setArcWidth(6);
-            clip.setArcHeight(6);
+            clip.setArcWidth(8);
+            clip.setArcHeight(8);
             thumb.setClip(clip);
 
             StackPane cell = new StackPane(thumb);
             cell.setPrefSize(96, 76);
+            cell.setMinSize(96, 76);
             cell.setMaxSize(96, 76);
             cell.setStyle(idx == currentImageIndex
-                    ? "-fx-background-color: #ffffff; -fx-background-radius: 8; -fx-padding: 3; -fx-cursor: hand;"
-                    : "-fx-background-color: #444; -fx-background-radius: 8; -fx-padding: 3; -fx-cursor: hand;");
+                    ? "-fx-background-color: #ffffff; -fx-background-radius: 10; -fx-padding: 3; -fx-cursor: hand;"
+                    : "-fx-background-color: #3a3a3a; -fx-background-radius: 10; -fx-padding: 3; -fx-cursor: hand;");
 
-            cell.setOnMouseClicked(e -> {
-                showImageAt(idx);
-            });
+            cell.setOnMouseClicked(e -> showImageAt(idx));
             cell.setId("thumb_" + i);
             hboxThumbnails.getChildren().add(cell);
         }

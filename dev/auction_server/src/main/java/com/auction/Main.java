@@ -6,6 +6,7 @@ import com.auction.service.IAuctionService;
 import com.auction.util.AuctionManager;
 import com.auction.util.ItemManager;
 import com.auction.util.UserManager;
+import com.auction.dao.DatabaseConnection;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,6 +57,14 @@ public class Main {
         // 4. Mở ServerSocket và chấp nhận kết nối từ Client
         ExecutorService threadPool = Executors.newFixedThreadPool(50);
 
+        // 5. Shutdown hook — đóng pool sạch khi server bị tắt (Ctrl+C hoặc kill)
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("🔌 Server đang tắt, đóng connection pool...");
+            threadPool.shutdown();
+            scheduler.shutdown();
+            DatabaseConnection.shutdown();
+        }));
+
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("🌐 Server đang lắng nghe tại port " + port + " ...");
 
@@ -67,9 +76,6 @@ public class Main {
         } catch (IOException e) {
             LOGGER.severe("❌ Không thể mở ServerSocket tại port " + port + ": " + e.getMessage());
             e.printStackTrace();
-        } finally {
-            threadPool.shutdown();
-            scheduler.shutdown();
         }
     }
 
