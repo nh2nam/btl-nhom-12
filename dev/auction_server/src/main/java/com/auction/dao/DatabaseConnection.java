@@ -34,22 +34,17 @@ public class DatabaseConnection {
         DB_SECRET = props.getProperty("db.password", "AVNS_y9I15RDAzV-XLdCZFjC");
     }
 
-    private static Connection connection;
+
 
     private DatabaseConnection() {}
 
     public static Connection getConnection() {
         try {
-            if (connection == null || connection.isClosed()) {
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                connection = DriverManager.getConnection(URL, USER, DB_SECRET);
-                LOGGER.info("🔗 Đã kết nối tới Database thành công!");
-                ensurePhoneColumn(connection);
-            }
-        } catch (SQLException | ClassNotFoundException e) {
-            throw new IllegalStateException("Không thể kết nối DB, dừng hệ thống.", e);
+            // Xóa cái if (connection == null) cũ đi, bắt buộc luôn tạo mới!
+            return DriverManager.getConnection(URL, USER, DB_SECRET);
+        } catch (SQLException e) {
+            throw new IllegalStateException("❌ Lỗi kết nối Database!", e);
         }
-        return connection;
     }
 
     /**
