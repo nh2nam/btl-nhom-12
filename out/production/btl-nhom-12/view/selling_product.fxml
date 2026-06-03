@@ -35,12 +35,6 @@
                             <contextMenu>
                                 <ContextMenu fx:id="userMenu"
                                              style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
-                                    <items>
-                                        <MenuItem text="Thông tin cá nhân" />
-                                        <MenuItem text="Sản phẩm của bạn" />
-                                        <MenuItem text="Lịch sử đấu giá thành công" />
-                                        <MenuItem text="Đăng xuất" onAction="#logout" />
-                                    </items>
                                 </ContextMenu>
                             </contextMenu>
                         </Label>

@@ -32,7 +32,7 @@ public class SignUpController {
         String username    = txtUser.getText().trim();       // Tên người dùng (họ tên)
         String accountName = txtAccountName.getText().trim(); // Tên đăng nhập
         String password    = txtPass.getText().trim();
-        String email       = txtAddress.getText().trim();     // Email thật
+        String email       = txtAddress.getText().trim();     // Email
         String phone       = txtPhone.getText().trim();
 
         if (username.isEmpty() || email.isEmpty() || phone.isEmpty()

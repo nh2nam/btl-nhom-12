@@ -26,8 +26,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.lang.reflect.Type;
 
-// Đã dọn dẹp các thư viện Base64 và ByteArrayInputStream không còn dùng tới
-
 public class HomeController {
 
     @FXML private Label lblUsername;
@@ -335,10 +333,6 @@ public class HomeController {
         return msg.toString();
     }
 
-    private void showMyAuctionResults() {
-        // Đã được thay thế bởi màn hình "Sản phẩm của bạn"
-    }
-
     private void startListeningForPrices() {
         Thread listenerThread = new Thread(() -> {
             try {
@@ -351,10 +345,6 @@ public class HomeController {
                 String message;
                 while ((message = in.readLine()) != null) {
                     if (message.contains("UPDATE_PRICE")) {
-                        Map<String, Object> data = gson.fromJson(message, new TypeToken<Map<String, Object>>(){}.getType());
-                        int id = ((Number) data.get("auctionId")).intValue();
-                        double newPrice = ((Number) data.get("newPrice")).doubleValue();
-
                         Platform.runLater(() -> {
                             loadAuctionsFromServer();
                         });

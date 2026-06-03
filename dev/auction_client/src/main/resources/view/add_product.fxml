@@ -30,12 +30,7 @@
                             </font>
                             <contextMenu>
                                 <ContextMenu fx:id="userMenu" style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
-                                    <items>
-                                        <MenuItem text="Thông tin cá nhân" />
-                                        <MenuItem text="Sản phẩm của bạn" />
-                                        <MenuItem text="Lịch sử đấu giá thành công"/>
-                                        <MenuItem text="Đăng xuất" onAction="#logout"/>
-                                    </items>
+
                                 </ContextMenu>
                             </contextMenu>
                         </Label>
@@ -47,13 +42,7 @@
                         <Label onMouseEntered="#handleShowAuctionMenu" style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-cursor: hand;" text="Tài sản đấu giá">
                             <contextMenu>
                                 <ContextMenu fx:id="auctionMenu" style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
-                                    <items>
-                                        <MenuItem text="Nghệ thuật" />
-                                        <MenuItem text="Điện tử" />
-                                        <MenuItem text="Bất động sản" />
-                                        <MenuItem text="Thời trang" />
-                                        <MenuItem text="Tài sản khác" />
-                                    </items>
+
                                 </ContextMenu>
                             </contextMenu>
                         </Label>
@@ -61,10 +50,7 @@
                         <Label onMouseEntered="#handleShowSessionMenu" style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-cursor: hand;" text="Phiên đấu giá">
                             <contextMenu>
                                 <ContextMenu fx:id="sessionMenu" style="-fx-background-color: #1a1a1a; -fx-font-weight: bold; -fx-color: white; -fx-font-size: 20;">
-                                    <items>
-                                        <MenuItem text="Phiên đấu giá đang diễn ra" />
-                                        <MenuItem text="Phiên đấu giá đã kết thúc" />
-                                    </items>
+
                                 </ContextMenu>
                             </contextMenu>
                         </Label>
