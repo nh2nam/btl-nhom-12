@@ -274,8 +274,9 @@ chmod +x run-clients.sh
 
 ## 👥 Group 12 — Members
 
-| No. | Full Name | Student ID |
-|-----|-----------|------------|
-| 1 | [Add name] | [Add ID] |
-| 2 | [Add name] | [Add ID] |
-| 3 | [Add name] | [Add ID] |
+| No. | Full Name      | Student ID |
+|-----|----------------|------------|
+| 1   | Nguyễn Hải Nam | 25021903   |
+| 2   | Lê Trọng Tùng  | 25022004   |
+| 3   | Trần Minh Sơn  | 25021974   |
+| 4   | Phạm Tuấn Minh | 25021886   |
