@@ -1,3 +1,5 @@
+> 🌐 [Phiên bản Tiếng Việt](README.md)
+
 # 🏷️ Hệ Thống Đấu Giá Trực Tuyến — Nhóm 12
 
 Ứng dụng đấu giá theo mô hình **Client-Server** thời gian thực, xây dựng bằng Java thuần với giao tiếp qua TCP Socket. Người dùng có thể đăng sản phẩm, tham gia đặt giá thủ công hoặc tự động, theo dõi biến động giá trực tiếp và nhắn tin trong phòng chat của từng phiên đấu giá.
