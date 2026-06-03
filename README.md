@@ -1,4 +1,5 @@
-> 🌐 [Phiên bản Tiếng Việt](README.md)
+> 🌐 [English version](README.en.md)
+
 
 # 🏷️ Hệ Thống Đấu Giá Trực Tuyến — Nhóm 12
 
