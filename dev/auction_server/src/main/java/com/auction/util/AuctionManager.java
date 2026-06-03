@@ -1,6 +1,7 @@
 package com.auction.util;
 
 import com.auction.model.Auction;
+import com.auction.model.BidTransaction;
 import com.auction.dao.AuctionDAO;
 import com.auction.dao.BidTransactionDAO;
 import java.util.Collection;
@@ -39,6 +40,13 @@ public class AuctionManager {
                 // Ghi lại giá đúng xuống DB
                 auctionDAO.updateAuction(auction);
             }
+
+            // Khôi phục lịch sử đặt giá từ DB vào RAM
+            // Nếu thiếu bước này, bidHistory sẽ rỗng sau mỗi lần restart server,
+            // dẫn đến việc tab "Đang đấu giá" của client không hiển thị gì cả.
+            List<BidTransaction> history = bidTransactionDAO.getBidsByAuctionId(auction.getId());
+            auction.getBidHistory().addAll(history);
+
             activeAuctions.put(auction.getId(), auction);
         }
         LOGGER.info(() -> "✅ Đã đồng bộ " + activeAuctions.size() + " phiên đấu giá từ Database lên RAM.");
