@@ -97,11 +97,7 @@ public class AdminController {
         loadItems();
     }
 
-    // ─────────────────────────────────────────────
-    // Table styling (replaces CSS)
-    // ─────────────────────────────────────────────
 
-    /** Áp style nền đen cho toàn bộ TableView bằng Java — không cần CSS file. */
     private <T> void applyTableStyle(TableView<T> table) {
         // Background của bảng
         table.setStyle(

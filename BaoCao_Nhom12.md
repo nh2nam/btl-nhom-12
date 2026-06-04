@@ -14,55 +14,55 @@ Xây dựng ứng dụng đấu giá trực tuyến theo mô hình **Client–Se
 ## 2. KIẾN TRÚC TỔNG THỂ HỆ THỐNG
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         CLIENT (JavaFX)                          │
-│                                                                   │
-│  ┌────────────┐  ┌──────────────────┐  ┌─────────────────────┐  │
-│  │  View      │  │   Controller     │  │   Model (local)     │  │
-│  │  (FXML)    │←→│  (8 Controller)  │←→│  User, Auction, ... │  │
-│  └────────────┘  └────────┬─────────┘  └─────────────────────┘  │
-│                            │                                      │
-│               ┌────────────┴──────────────┐                      │
-│               │      ServerConnection     │  ← Singleton         │
-│               │   (TCP Socket, port 9999) │                      │
-│               └────────────┬──────────────┘                      │
-│                             │ Socket #2 (broadcast listener)      │
-└─────────────────────────────┼───────────────────────────────────-┘
+┌───────────── ────────────────────────────────────────────────────┐
+│                          CLIENT (JavaFX)                         │
+│                                                                  │
+│   ┌────────────┐  ┌──────────────────┐  ┌─────────────────────┐  │
+│   │  View      │  │   Controller     │  │   Model (local)     │  │
+│   │  (FXML)    │←→│  (8 Controller)  │←→│  User, Auction, ... │  │
+│   └────────────┘  └────────┬─────────┘  └─────────────────────┘  │
+│                             │                                    │
+│                ┌────────────┴──────────────┐                     │
+│                │      ServerConnection     │  ← Singleton        │
+│                │   (TCP Socket, port 9999) │                     │
+│                └────────────┬──────────────┘                     │
+│                             │ Socket #2 (broadcast listener)     │
+└─────────────────────────────┼────────────────────────────────────┘
                               │  JSON over TCP (line-delimited)
 ┌─────────────────────────────┼────────────────────────────────────┐
-│                         SERVER                                    │
-│                              │                                    │
+│                           SERVER                                 │
+│                              │                                   │
 │  ┌───────────────────────────▼─────────────────────────────┐     │
-│  │              network/ClientHandler (Runnable)            │     │
-│  │          Thread Pool — 50 threads (ExecutorService)      │     │
+│  │              network/ClientHandler (Runnable)           │     │
+│  │          Thread Pool — 50 threads (ExecutorService)     │     │
 │  └──────────────────────────┬──────────────────────────────┘     │
-│                              │                                    │
-│  ┌───────────────────────────▼──────────────────────────────┐    │
-│  │  service/AuctionServiceImpl  ←  IAuctionService           │    │
-│  │  (placeManualBid, registerAutoBid, processExpiredAuctions)│    │
+│                             │                                    │
+│  ┌──────────────────────────▼───────────────────────────────┐    │
+│  │ service/AuctionServiceImpl  ←  IAuctionService           │    │
+│  │ (placeManualBid, registerAutoBid, processExpiredAuctions)│    │
 │  └──────────────────────────┬───────────────────────────────┘    │
-│                              │                                    │
-│  ┌───────────────────────────▼──────────────────────────────┐    │
-│  │  util/ AuctionManager | UserManager | ItemManager         │    │
-│  │        (In-Memory Cache — ConcurrentHashMap)              │    │
+│                             │                                    │
+│  ┌──────────────────────────▼───────────────────────────────┐    │
+│  │  util/ AuctionManager | UserManager | ItemManager        │    │
+│  │        (In-Memory Cache — ConcurrentHashMap)             │    │
 │  └──────────────────────────┬───────────────────────────────┘    │
-│                              │                                    │
-│  ┌───────────────────────────▼──────────────────────────────┐    │
-│  │  dao/  AuctionDAO | UserDAO | ItemDAO                     │    │
-│  │        BidTransactionDAO | ChatMessageDAO                 │    │
-│  │        (PreparedStatement + HikariCP Connection Pool)     │    │
+│                             │                                    │
+│  ┌──────────────────────────▼───────────────────────────────┐    │
+│  │  dao/  AuctionDAO | UserDAO | ItemDAO                    │    │
+│  │        BidTransactionDAO | ChatMessageDAO                │    │
+│  │        (PreparedStatement + HikariCP Connection Pool)    │    │
 │  └──────────────────────────┬───────────────────────────────┘    │
-│                              │                                    │
-│                    ┌─────────▼──────────┐                        │
-│                    │   MySQL (Aiven)     │                        │
-│                    └────────────────────┘                        │
-│                                                                   │
+│                             │                                    │
+│                   ┌─────────▼──────────┐                         │
+│                   │   MySQL (Aiven)    │                         │
+│                   └────────────────────┘                         │
+│                                                                  │
 │  ┌─────────────────────────────────────────────────────────┐     │
 │  │  network/BroadcastManager (Observer pattern)            │     │
 │  │  CopyOnWriteArrayList<PrintWriter> observers            │     │
 │  │  → broadcastPriceUpdate() | broadcastChatMessage()      │     │
 │  └─────────────────────────────────────────────────────────┘     │
-└───────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 Hệ thống chia làm hai module Maven độc lập (`auction_server`, `auction_client`), giao tiếp qua **TCP Socket** với giao thức **JSON line-by-line**. Server tổ chức 4 tầng: network → service → util/cache → dao. Khi khởi động, dữ liệu MySQL nạp lên RAM (`ConcurrentHashMap`) — thao tác đặt giá chỉ cần đọc/ghi RAM, tốc độ cao. Mỗi client được xử lý bởi một `ClientHandler` trong thread pool 50 luồng. Cập nhật realtime qua `BroadcastManager` (Observer). Client theo **MVC**: FXML (View) + 8 Controller + `ServerConnection` Singleton; UI cập nhật qua `Platform.runLater()`.
