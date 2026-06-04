@@ -43,7 +43,6 @@ public class SellingProductController {
     @FXML private Label lblCurrentPrice;
     @FXML private Label lblEndTime;
     @FXML private TextField txtBidAmount;
-    @FXML private Label description;
     @FXML private Button btnConfirm;
     @FXML private Text priceCheck;
     @FXML private VBox vboxBidHistory;
@@ -111,8 +110,6 @@ public class SellingProductController {
             String desc = (String) selectedAuction.getOrDefault("description", "Không có mô tả.");
             String category = (String) selectedAuction.getOrDefault("category", "Other"); // Lấy category ra
 
-            // Sửa lại dòng setText của lblProductInfo:
-            description.setText(desc);
             lblProductInfo.setText("📌 Phân loại: " + category + "\n\n📝 Mô tả: " + desc);
 
             // --- XỬ LÝ GALLERY ẢNH (hỗ trợ nhiều ảnh, phân cách bởi dấu phẩy) ---

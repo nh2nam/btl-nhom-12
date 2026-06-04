@@ -114,8 +114,6 @@
                             <Separator style="-fx-background-color: #444;" />
                             <Label fx:id="lblProductInfo" wrapText="true"
                                    style="-fx-text-fill: #cccccc; -fx-font-size: 16px; -fx-line-spacing: 5px;" />
-                            <Label fx:id="description" wrapText="true"
-                                   style="-fx-text-fill: #cccccc; -fx-font-size: 16px; -fx-line-spacing: 5px;" />
                         </VBox>
 
                         <!-- LIVE CHAT ROOM -->
