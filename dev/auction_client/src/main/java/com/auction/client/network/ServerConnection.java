@@ -17,7 +17,7 @@ import java.net.Socket;
 public class ServerConnection {
 
     // --- Cấu hình mạng ---
-    private static final String SERVER_IP   = "localhost";
+    private static final String SERVER_IP   = "10.11.6.115";
     private static final int    SERVER_PORT = 9999;
     private static final int    TIMEOUT_MS  = 10_000; // 10 giây
 

@@ -22,6 +22,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
@@ -38,6 +39,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class MyProductsController {
+
+    @FXML private StackPane rootPane;
 
     // Tab labels
     @FXML private Label tabSelling;
@@ -553,12 +556,10 @@ public class MyProductsController {
 
         // ── Nút Hủy ──
         btnCancel.setOnAction(e -> {
-            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-            confirm.setTitle("Xác nhận hủy");
-            confirm.setHeaderText(null);
-            confirm.setContentText("Bạn có chắc muốn hủy?\nSản phẩm sẽ không được bàn giao.");
-            confirm.showAndWait().ifPresent(btn -> {
-                if (btn == ButtonType.OK) {
+            showConfirm(
+                "Xác nhận hủy",
+                "Bạn có chắc muốn hủy?\nSản phẩm sẽ không được bàn giao.",
+                () -> {
                     timerRef[0].cancel(false);
                     scheduler.shutdown();
                     dialogClosed[0] = true;
@@ -576,7 +577,7 @@ public class MyProductsController {
                     }
                     loadMyProducts();
                 }
-            });
+            );
         });
 
         // Dọn dẹp timer khi dialog bị đóng bằng cách khác
@@ -607,12 +608,156 @@ public class MyProductsController {
         }
     }
 
+    // ─── Custom overlay notifications (không dùng Stage mới) ────────────────
+
+    /**
+     * Hiển thị thông báo dạng overlay modal ngay trên scene hiện tại.
+     * Không tạo Stage mới nên không bao giờ bị mất sau primaryStage.
+     */
     private void showAlert(Alert.AlertType type, String title, String message) {
-        Alert alert = new Alert(type);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        String accentColor, iconText;
+        switch (type) {
+            case ERROR:        accentColor = "#CC0000"; iconText = "✕"; break;
+            case WARNING:      accentColor = "#FF9800"; iconText = "⚠"; break;
+            case CONFIRMATION: accentColor = "#1976D2"; iconText = "?"; break;
+            default:           accentColor = "#4CAF50"; iconText = "✓"; break;
+        }
+        showOverlay(buildAlertBox(accentColor, iconText, title, message, null));
+    }
+
+    /**
+     * Hiển thị xác nhận hai nút. onConfirm chạy nếu user chọn "Có".
+     */
+    private void showConfirm(String title, String message, Runnable onConfirm) {
+        showOverlay(buildAlertBox("#CC0000", "⚠", title, message, onConfirm));
+    }
+
+    /** Inject overlay backdrop + card vào rootPane. */
+    private void showOverlay(VBox card) {
+        // Backdrop mờ
+        StackPane backdrop = new StackPane(card);
+        backdrop.setStyle("-fx-background-color: rgba(0,0,0,0.65);");
+        backdrop.setAlignment(Pos.CENTER);
+
+        // Đóng khi click ra ngoài card
+        backdrop.setOnMouseClicked(e -> {
+            if (e.getTarget() == backdrop) rootPane.getChildren().remove(backdrop);
+        });
+        card.setOnMouseClicked(javafx.event.Event::consume);
+
+        rootPane.getChildren().add(backdrop);
+    }
+
+    /**
+     * Tạo card thông báo.
+     * Nếu onConfirm != null → hiện hai nút "Không" / "Có, xác nhận" (confirm mode).
+     * Nếu onConfirm == null → chỉ một nút OK (alert mode).
+     */
+    private VBox buildAlertBox(String accentColor, String iconText,
+                                String title, String message, Runnable onConfirm) {
+        VBox card = new VBox(0);
+        card.setPrefWidth(420);
+        card.setMaxWidth(420);
+        card.setStyle(
+            "-fx-background-color: #1a1a1a;" +
+            "-fx-background-radius: 14;" +
+            "-fx-border-radius: 14;" +
+            "-fx-border-color: #2e2e2e;" +
+            "-fx-border-width: 1;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.9), 40, 0, 0, 10);"
+        );
+
+        // Stripe màu
+        Region stripe = new Region();
+        stripe.setPrefHeight(4);
+        stripe.setStyle("-fx-background-color: " + accentColor + "; -fx-background-radius: 14 14 0 0;");
+
+        // Body
+        HBox body = new HBox(18);
+        body.setAlignment(Pos.CENTER_LEFT);
+        body.setStyle("-fx-padding: 28 28 22 28;");
+
+        Label iconLbl = new Label(iconText);
+        iconLbl.setMinSize(48, 48);
+        iconLbl.setPrefSize(48, 48);
+        iconLbl.setAlignment(Pos.CENTER);
+        iconLbl.setStyle(
+            "-fx-background-color: " + accentColor + "1a;" +
+            "-fx-text-fill: " + accentColor + ";" +
+            "-fx-font-size: 22px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-background-radius: 24;"
+        );
+
+        VBox textBlock = new VBox(7);
+        HBox.setHgrow(textBlock, Priority.ALWAYS);
+
+        Label titleLbl = new Label(title);
+        titleLbl.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
+        titleLbl.setWrapText(true);
+
+        Label msgLbl = new Label(message);
+        msgLbl.setStyle("-fx-text-fill: #999; -fx-font-size: 13px; -fx-line-spacing: 3;");
+        msgLbl.setWrapText(true);
+        msgLbl.setMaxWidth(310);
+
+        textBlock.getChildren().addAll(titleLbl, msgLbl);
+        body.getChildren().addAll(iconLbl, textBlock);
+
+        // Divider
+        Region divider = new Region();
+        divider.setPrefHeight(1);
+        divider.setStyle("-fx-background-color: #252525;");
+
+        // Footer
+        HBox footer = new HBox(10);
+        footer.setAlignment(Pos.CENTER_RIGHT);
+        footer.setStyle("-fx-padding: 14 24 18 24;");
+
+        if (onConfirm == null) {
+            // Alert mode: chỉ nút OK
+            Button btnOk = makeBtn("OK", accentColor, true);
+            btnOk.setOnAction(e -> {
+                StackPane backdrop = (StackPane) card.getParent();
+                rootPane.getChildren().remove(backdrop);
+            });
+            footer.getChildren().add(btnOk);
+        } else {
+            // Confirm mode: Không + Có
+            Button btnNo = makeBtn("Không", "#2e2e2e", false);
+            btnNo.setStyle(btnNo.getStyle() + "-fx-text-fill: #888;");
+            Button btnYes = makeBtn("Có, xác nhận", accentColor, true);
+
+            btnNo.setOnAction(e -> {
+                StackPane backdrop = (StackPane) card.getParent();
+                rootPane.getChildren().remove(backdrop);
+            });
+            btnYes.setOnAction(e -> {
+                StackPane backdrop = (StackPane) card.getParent();
+                rootPane.getChildren().remove(backdrop);
+                onConfirm.run();
+            });
+            footer.getChildren().addAll(btnNo, btnYes);
+        }
+
+        card.getChildren().addAll(stripe, body, divider, footer);
+        return card;
+    }
+
+    private Button makeBtn(String text, String bgColor, boolean bold) {
+        Button btn = new Button(text);
+        btn.setPrefHeight(38);
+        btn.setMinWidth(90);
+        btn.setStyle(
+            "-fx-background-color: " + bgColor + ";" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            (bold ? "-fx-font-weight: bold;" : "") +
+            "-fx-background-radius: 7;" +
+            "-fx-cursor: hand;" +
+            "-fx-padding: 0 20 0 20;"
+        );
+        return btn;
     }
 
     // ─── Navigation ───────────────────────────────────────────────────────────

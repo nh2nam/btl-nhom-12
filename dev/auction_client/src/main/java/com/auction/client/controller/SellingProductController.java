@@ -613,7 +613,7 @@ public class SellingProductController {
     private void startListeningForPrices() {
         Thread listenerThread = new Thread(() -> {
             try {
-                radioSocket = new java.net.Socket("localhost", 9999);
+                radioSocket = new java.net.Socket("10.11.6.115", 9999);
                 java.io.PrintWriter out = new java.io.PrintWriter(radioSocket.getOutputStream(), true);
                 java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(radioSocket.getInputStream()));
 
@@ -646,7 +646,9 @@ public class SellingProductController {
                         String content   = String.valueOf(data.getOrDefault("content", ""));
 
                         if (id == currentAuctionId) {
-                            Platform.runLater(() -> appendChatMessage(sender, content, false));
+                            String myName = UserSession.getInstance().getDisplayName();
+                            boolean isMine = sender.equals(myName);
+                            Platform.runLater(() -> appendChatMessage(sender, content, isMine));
                         }
                     }
                 }
@@ -752,14 +754,10 @@ public class SellingProductController {
         VBox bubble = new VBox(2, lblSender, lblContent);
         bubble.setMaxWidth(320);
 
-        // HBox để căn phải/trái
+        // HBox — tất cả tin nhắn căn trái
         HBox row = new HBox(bubble);
         row.setPadding(new Insets(3, 8, 3, 8));
-        if (isMine) {
-            row.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
-        } else {
-            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        }
+        row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
         vboxChatMessages.getChildren().add(row);
 

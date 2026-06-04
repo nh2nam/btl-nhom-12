@@ -336,7 +336,7 @@ public class HomeController {
     private void startListeningForPrices() {
         Thread listenerThread = new Thread(() -> {
             try {
-                radioSocket = new java.net.Socket("localhost", 9999);
+                radioSocket = new java.net.Socket("10.11.6.115", 9999);
                 java.io.PrintWriter out = new java.io.PrintWriter(radioSocket.getOutputStream(), true);
                 java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(radioSocket.getInputStream()));
 
