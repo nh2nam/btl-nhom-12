@@ -622,13 +622,18 @@ public class SellingProductController {
                         Map<String, Object> data = gson.fromJson(message, new TypeToken<Map<String, Object>>(){}.getType());
                         int id = ((Number) data.get("auctionId")).intValue();
                         double newPrice = ((Number) data.get("newPrice")).doubleValue();
+                        String newEndTime = data.get("newEndTime") != null ? String.valueOf(data.get("newEndTime")) : null;
 
                         if (id == currentAuctionId) {
-                            // 1. NHẢY GIÁ ĐỎ LẬP TỨC TRÊN GIAO DIỆN
+                            // 1. NHẢY GIÁ ĐỎ + CẬP NHẬT THỜI GIAN KẾT THÚC LẬP TỨC TRÊN GIAO DIỆN
                             Platform.runLater(() -> {
                                 if (newPrice > currentHighestBid) {
                                     currentHighestBid = newPrice;
                                     lblCurrentPrice.setText(String.format("%,.0f VNĐ", newPrice));
+                                }
+                                // Observer cập nhật endTime mỗi khi anti-sniping gia hạn
+                                if (newEndTime != null && !newEndTime.isEmpty()) {
+                                    lblEndTime.setText(newEndTime);
                                 }
                             });
 

@@ -20,10 +20,12 @@ public class BroadcastManager {
         observers.remove(out);
     }
 
-    // 3. Hét lên cho tất cả mọi người cùng nghe! (cập nhật giá)
-    public static void broadcastPriceUpdate(int auctionId, double newPrice) {
+    // 3. Hét lên cho tất cả mọi người cùng nghe! (cập nhật giá + thời gian kết thúc)
+    public static void broadcastPriceUpdate(int auctionId, double newPrice, String newEndTime) {
         // Đóng gói tin nhắn dạng JSON thủ công cho nhanh
-        String message = String.format("{\"action\":\"UPDATE_PRICE\", \"auctionId\":%d, \"newPrice\":%f}", auctionId, newPrice);
+        String message = String.format(
+                "{\"action\":\"UPDATE_PRICE\", \"auctionId\":%d, \"newPrice\":%f, \"newEndTime\":\"%s\"}",
+                auctionId, newPrice, newEndTime);
 
         System.out.println("📢 BROADCAST: " + message);
         for (PrintWriter out : observers) {

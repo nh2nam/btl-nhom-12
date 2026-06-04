@@ -65,7 +65,9 @@ public class AuctionServiceImpl implements IAuctionService {
 
             System.out.println("✅ " + (isAutoBid ? "[BOT] " : "[USER] ") + bidderId + " đặt giá: " + bidAmount + "$");
 
-            com.auction.network.BroadcastManager.broadcastPriceUpdate(auctionId, bidAmount);
+            com.auction.network.BroadcastManager.broadcastPriceUpdate(
+                    auctionId, bidAmount,
+                    auction.getEndTime().toString().replace("T", " ").replaceAll("\\..*", ""));
             notifyAutoBidObservers(auction);
             // 6. CHỐT CHẶN ĐỆ QUY:
             // Chỉ kích hoạt Auto-Bidding nếu người vừa đặt giá là NGƯỜI THẬT.
