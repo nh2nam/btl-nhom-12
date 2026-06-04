@@ -40,5 +40,5 @@ public abstract class Item extends Entity {
     }
     public String getImagePath() { return imagePath; }
     public void setImagePath(String imagePath) { this.imagePath = imagePath; }
-    // Nhấn Alt + Insert -> chọn Getter and Setter để IntelliJ tự tạo code cho name, description, startingPrice nhé!
+
 }

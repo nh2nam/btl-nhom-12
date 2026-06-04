@@ -47,5 +47,5 @@ public class BidTransaction extends Entity {
     public void setBidTime(LocalDateTime bidTime) {
         this.bidTime = bidTime;
     }
-// Generate Getter và Setter
+
 }

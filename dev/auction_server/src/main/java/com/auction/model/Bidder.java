@@ -10,7 +10,7 @@ public class Bidder extends User {
         this.autoBidEnabled = false;
     }
 
-    // --- Các hàm Getter / Setter mà bạn đang thiếu ---
+
     public boolean isAutoBidEnabled() { return autoBidEnabled; }
     public void setAutoBidEnabled(boolean autoBidEnabled) { this.autoBidEnabled = autoBidEnabled; }
 

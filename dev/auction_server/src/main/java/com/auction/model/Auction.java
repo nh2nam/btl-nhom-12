@@ -9,7 +9,7 @@ public class Auction extends Entity {
     private int itemId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private String status; // Trạng thái: "OPEN", "RUNNING", "FINISHED", "PENDING_PAYMENT", "CANCELLED"
+    private String status;
 
     // Biến phụ trợ cho logic đấu giá
     private double currentHighestBid;
@@ -19,9 +19,9 @@ public class Auction extends Entity {
     // Thời hạn thanh toán (chỉ có giá trị khi status = PENDING_PAYMENT)
     private LocalDateTime paymentDeadline;
 
-    // ĐÂY RỒI: Danh sách lưu lại lịch sử đặt giá
+    // Danh sách lưu lại lịch sử đặt giá
     private List<BidTransaction> bidHistory;
-    // THÊM MỚI: Danh sách lưu những người dùng đang bật Auto-Bid
+    // Danh sách lưu những người dùng đang bật Auto-Bid
     private List<Bidder> autoBidders;
 
 
@@ -38,22 +38,21 @@ public class Auction extends Entity {
         this.currentWinnerId = -1;
         this.version = 1;
 
-        // Bắt buộc phải khởi tạo danh sách rỗng, nếu không sẽ bị lỗi NullPointer
+
         this.bidHistory = new ArrayList<>();
         this.autoBidders = new ArrayList<>();
     }
 
-    // Hàm tiện ích để kiểm tra xem phiên còn mở không
+
     public boolean isOpen() {
         return "RUNNING".equals(status) && LocalDateTime.now().isBefore(endTime);
     }
 
-    // Hàm lấy lịch sử đấu giá
+
     public List<BidTransaction> getBidHistory() {
         return bidHistory;
     }
 
-    // Các Getter/Setter khác bạn có thể dùng Alt + Insert để tạo lại nhé
     public int getSellerId() { return sellerId; }
     public void setSellerId(int sellerId) { this.sellerId = sellerId; }
     public int getItemId() { return itemId; }
