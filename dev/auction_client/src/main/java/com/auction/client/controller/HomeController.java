@@ -118,9 +118,14 @@ public class HomeController {
         nameLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;");
         nameLabel.setWrapText(true);
 
-        Label descLabel = new Label(desc);
+        // Chỉ hiện 1 dòng, cắt ... nếu quá dài
+        String shortDesc = desc.contains("\n") ? desc.substring(0, desc.indexOf("\n")) : desc;
+        Label descLabel = new Label(shortDesc);
         descLabel.setStyle("-fx-text-fill: #aaa; -fx-font-size: 13px;");
-        descLabel.setWrapText(true);
+        descLabel.setMaxWidth(270);
+        descLabel.setEllipsisString("...");
+        descLabel.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
+        descLabel.setWrapText(false);
 
         Label priceLabel = new Label(String.format("Giá: %,.0f VND", bid));
         priceLabel.setStyle("-fx-text-fill: #ff5252; -fx-font-size: 16px; -fx-font-weight: bold;");
