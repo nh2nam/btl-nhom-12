@@ -100,13 +100,13 @@ mvn clean package -DskipTests
 
 **Windows:**
 ```bash
-cd dev/auction_server
+cd auction_server
 java -cp "target/auction-server.jar;target/libs/*" com.auction.Main
 ```
 
 **Linux / macOS:**
 ```bash
-cd dev/auction_server
+cd auction_server
 java -cp "target/auction-server.jar:target/libs/*" com.auction.Main
 ```
 
@@ -115,16 +115,19 @@ java -cp "target/auction-server.jar:target/libs/*" com.auction.Main
 ---
 
 ### Bước 3 — Chạy Client
+Mở thêm 1 CMD (Terminal/ PowerShell) mới.
 
 **Windows:**
 ```bash
-cd dev/auction_client
+cd auction_client
+mvn dependency:copy-dependencies
 java --module-path "target/dependency" --add-modules javafx.controls,javafx.fxml -cp "target/auction_client-1.0-SNAPSHOT.jar;target/dependency/*" com.auction.client.Launcher
 ```
 
 **Linux / macOS:**
 ```bash
-cd dev/auction_client
+cd auction_client
+mvn dependency:copy-dependencies
 java --module-path "target/dependency" --add-modules javafx.controls,javafx.fxml -cp "target/auction_client-1.0-SNAPSHOT.jar:target/dependency/*" com.auction.client.Launcher
 ```
 
