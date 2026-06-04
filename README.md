@@ -271,8 +271,8 @@ chmod +x run-clients.sh
 
 ## 🔗 Tài Nguyên
 
-- 📄 **Báo cáo PDF:** [Thêm link báo cáo vào đây]
-- 🎥 **Video Demo:** [Thêm link video vào đây]
+- 📄 **Báo cáo PDF:** [PDF](https://drive.google.com/file/d/1Jnw2DiDO8ZD7HrmEUCikBGH66RWxOg7P/view?usp=sharing)
+- 🎥 **Video Demo:** [Drive](https://drive.google.com/file/d/1jVxZAMDYcMagawzYvq4Wbcgl4p5p0v7I/view?usp=sharing) - [Youtube](https://www.youtube.com/watch?v=WbESHWT-yCc)
 
 ---
 
