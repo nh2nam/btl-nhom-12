@@ -270,8 +270,8 @@ chmod +x run-clients.sh
 
 ## 🔗 Resources
 
-- 📄 **Project Report (PDF):** [Add report link here]
-- 🎥 **Demo Video:** [Add video link here]
+- 📄 **Project Report (PDF):** [PDF]()https://drive.google.com/file/d/1Jnw2DiDO8ZD7HrmEUCikBGH66RWxOg7P/view?usp=sharing
+- 🎥 **Demo Video:** [Drive](https://drive.google.com/file/d/1jVxZAMDYcMagawzYvq4Wbcgl4p5p0v7I/view?usp=sharing) - [Youtube](https://youtu.be/WbESHWT-yCc?si=k8mVLC2-xaJHRdq2)
 
 ---
 
